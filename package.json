@@ -1,0 +1,36 @@
+{
+	"name": "companion-module-livedeck",
+	"version": "0.1.0",
+	"description": "Bitfocus Companion module for LiveDeck Studio (iPad / Android vision mixer)",
+	"main": "dist/main.js",
+	"scripts": {
+		"build": "tsc",
+		"dev": "tsc --watch",
+		"package": "companion-module-build",
+		"check": "companion-module-check"
+	},
+	"author": "",
+	"license": "MIT",
+	"type": "module",
+	"dependencies": {
+		"@companion-module/base": "2.0.4"
+	},
+	"devDependencies": {
+		"@companion-module/tools": "^3.1.0",
+		"@types/node": "^22.20.3",
+		"typescript": "^5.9.3"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/topdirector/companion-module-livedeck.git"
+	},
+	"keywords": [
+		"companion",
+		"livedeck",
+		"ndi",
+		"vision mixer"
+	],
+	"engines": {
+		"node": "^22"
+	}
+}
