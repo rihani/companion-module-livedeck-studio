@@ -1,4 +1,4 @@
-# companion-module-livedeck
+# companion-module-livedeck-studio
 
 [Bitfocus Companion](https://bitfocus.io/companion) module for **LiveDeck Studio** — the iPad / iPhone / Android vision mixer.
 
@@ -15,17 +15,17 @@ feedback over the Studio's event stream (`GET /api/events`).
 ## Install
 
 - Companion 4.1 or newer (built on `@companion-module/base` 2.0.4).
-- Until the module is in the Bitfocus store: **Modules → Import module package** and pick `livedeck-<version>.tgz` from the Releases page.
+- Until the module is in the Bitfocus store: **Modules → Import module package** and pick `livedeck-studio-<version>.tgz` from the Releases page.
 
 ## Develop
 
 ```
 npm install
 npm run build          # tsc → dist/
-npm run package        # companion-module-build → pkg/ + livedeck-<version>.tgz
+npm run package        # companion-module-build → pkg/ + livedeck-studio-<version>.tgz
 ```
 
-For a developer setup, point Companion's *Developer modules path* (or `extraModulePath` in the headless `config.yaml`) at a folder that contains `pkg/livedeck`.
+For a developer setup, point Companion's *Developer modules path* (or `extraModulePath` in the headless `config.yaml`) at a folder that contains `pkg/livedeck-studio`.
 
 ## Studio API notes
 

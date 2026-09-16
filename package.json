@@ -1,5 +1,5 @@
 {
-	"name": "companion-module-livedeck",
+	"name": "companion-module-livedeck-studio",
 	"version": "0.1.0",
 	"description": "Bitfocus Companion module for LiveDeck Studio (iPad / Android vision mixer)",
 	"main": "dist/main.js",
@@ -22,7 +22,7 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/rihani/companion-module-livedeck.git"
+		"url": "git+https://github.com/rihani/companion-module-livedeck-studio.git"
 	},
 	"keywords": [
 		"companion",

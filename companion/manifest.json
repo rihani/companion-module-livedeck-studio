@@ -1,19 +1,21 @@
 {
-	"id": "livedeck",
+	"id": "livedeck-studio",
 	"name": "LiveDeck Studio",
-	"shortname": "livedeck",
+	"shortname": "livedeck-studio",
 	"description": "Control a LiveDeck Studio (iPad / iPhone / Android vision mixer): cue and take layouts, transitions, recording, NDI and RTMP outputs, audio, Run a Show, talkback and the auto-switch fallback. Live feedbacks over the Studio's event stream.",
 	"version": "0.1.0",
 	"license": "MIT",
-	"repository": "https://github.com/rihani/companion-module-livedeck",
-	"bugs": "https://github.com/rihani/companion-module-livedeck/issues",
+	"repository": "https://github.com/rihani/companion-module-livedeck-studio",
+	"bugs": "https://github.com/rihani/companion-module-livedeck-studio/issues",
 	"maintainers": [
 		{
 			"name": "LiveDeck",
 			"email": "support@live-deck.app"
 		}
 	],
-	"legacyIds": [],
+	"legacyIds": [
+		"livedeck"
+	],
 	"runtime": {
 		"type": "node22",
 		"api": "nodejs-ipc",
