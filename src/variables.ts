@@ -1,4 +1,4 @@
-import type { CompactState } from './api.js'
+import { liveNow, type CompactState } from './api.js'
 import type LiveDeckInstance from './main.js'
 
 /** Up to this many layouts get a `layout_<n>_name` variable. */
@@ -9,6 +9,7 @@ type LayoutNameVars = { [K in `layout_${number}_name`]: string }
 export type VariablesSchema = {
 	live_layout: string
 	cued_layout: string
+	live: string
 	transition: string
 	recording: string
 	streaming: string
@@ -32,6 +33,7 @@ export function UpdateVariableDefinitions(self: LiveDeckInstance): void {
 	const defs: Record<string, { name: string }> = {
 		live_layout: { name: 'On-air layout name' },
 		cued_layout: { name: 'Cued layout name' },
+		live: { name: 'GO LIVE: on air (Yes/No)' },
 		transition: { name: 'Default transition' },
 		recording: { name: 'Recording (Yes/No)' },
 		streaming: { name: 'Streaming (Yes/No)' },
@@ -61,12 +63,11 @@ export function variableValues(s: CompactState): Partial<VariablesSchema> {
 	const v: Record<string, string | number> = {
 		live_layout: name(s.liveLayout),
 		cued_layout: name(s.cuedLayout),
+		live: liveNow(s) ? 'Yes' : 'No',
 		transition: s.takeStyle ?? '',
 		recording: s.out?.rec ? 'Yes' : 'No',
 		streaming: s.out?.rtmp ? 'Yes' : 'No',
 		ndi_out: s.out?.ndi ? 'Yes' : 'No',
-		cpu: Math.round(Number(s.cpu ?? 0)),
-		output_fps: Math.round(Number(s.outputFps ?? 0)),
 		health: worst,
 		health_text: (s.health ?? []).map((h) => h.text).join(' · '),
 		offline_count: (s.offlineLayouts ?? []).length,
@@ -79,6 +80,13 @@ export function variableValues(s: CompactState): Partial<VariablesSchema> {
 		failover_target: s.failoverTarget ? name(s.failoverTarget) : 'Previous layout',
 		layout_count: (s.layouts ?? []).length,
 	}
+	// CPU / fps: the event stream may carry them at the top level, the full state under `stats`,
+	// and newer Studios only in the CPU health chip ("CPU 42%"). Unknown → keep the last value.
+	const cpuChip = (s.health ?? []).find((h) => h.id === 'cpu')?.text.match(/(\d+(?:\.\d+)?)\s*%/)
+	const cpu = s.cpu ?? s.stats?.cpu ?? (cpuChip ? Number(cpuChip[1]) : undefined)
+	if (cpu !== undefined && Number.isFinite(Number(cpu))) v.cpu = Math.round(Number(cpu))
+	const fps = s.outputFps ?? s.stats?.outputFps
+	if (fps !== undefined && Number.isFinite(Number(fps))) v.output_fps = Math.round(Number(fps))
 	for (let i = 1; i <= LAYOUT_SLOTS; i++) v[`layout_${i}_name`] = s.layouts?.[i - 1]?.name ?? ''
 	return v as Partial<VariablesSchema>
 }

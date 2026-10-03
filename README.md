@@ -1,36 +1,38 @@
 # companion-module-livedeck-studio
 
-[Bitfocus Companion](https://bitfocus.io/companion) module for **LiveDeck Studio** — the iPad / iPhone / Android vision mixer.
+[Bitfocus Companion](https://bitfocus.io/companion) module for **LiveDeck**, the vision mixer for iPad, iPhone, Mac and Android ([manarlabs.com/apps/livedeck](https://manarlabs.com/apps/livedeck/)).
 
-Cue and take layouts, transitions, record, NDI / RTMP / HLS outputs, audio (mute / solo / faders / follow), Run a Show,
-talkback, satellite messages, program resolution / orientation and the auto switch-away fallback — with live button
-feedback over the Studio's event stream (`GET /api/events`).
+Take and cue layouts, GO LIVE, transitions, recording, NDI / RTMP / HLS outputs, PTZ presets and moves, audio (mute / solo / faders / follow), Run a Show, talkback, satellite messages, Program resolution / orientation and the auto switch-away fallback. Buttons follow the mixer live through the Studio's event stream (`GET /api/events`).
 
-## Studio side
+User documentation (setup, actions, feedbacks, variables, presets, troubleshooting): [companion/HELP.md](./companion/HELP.md).
 
-1. Output → **Web remote** → on.
-2. Output → **Control API** → copy the token.
-3. Keep LiveDeck in the foreground (iOS closes the listener in the background).
+## Compatibility
 
-## Install
-
-- Companion 4.1 or newer (built on `@companion-module/base` 2.0.4).
-- Until the module is in the Bitfocus store: **Modules → Import module package** and pick `livedeck-studio-<version>.tgz` from the Releases page.
+- Companion **4.3 or newer** (built on `@companion-module/base` 2.0.x, Node 22 runtime).
+- Companion 4.1 / 4.2 users: the `companion-4x` branch builds the same module on `@companion-module/base` 1.13.
 
 ## Develop
 
+Uses Yarn 4 through Corepack, like every Bitfocus module.
+
 ```
-npm install
-npm run build          # tsc → dist/
-npm run package        # companion-module-build → pkg/ + livedeck-studio-<version>.tgz
+corepack enable
+yarn install
+yarn build          # tsc → dist/
+yarn lint           # eslint + prettier (Bitfocus config)
+yarn package        # companion-module-build → livedeck-studio-<version>.tgz
 ```
 
-For a developer setup, point Companion's *Developer modules path* (or `extraModulePath` in the headless `config.yaml`) at a folder that contains `pkg/livedeck-studio`.
+To try a build, point Companion's **Developer modules path** at a folder holding this repository (or unpack the `.tgz` there), or import the `.tgz` under **Modules → Import module package**.
 
 ## Studio API notes
 
+- Token: `Authorization: Bearer <token>`, from LiveDeck → Output → Control API. Full docs at `http://<studio>:<port>/api`.
 - `GET /api/events` — `text/event-stream`, `event: state` with a compact state on change, `: ping` every 15 s.
-- `GET /api/thumb/<layoutId>` / `GET /api/program.jpg` — JPEG images (token-gated).
+- `POST /api/command` — the generic command passthrough the module uses for every action.
+- `GET /api/ptz/cameras` — PTZ camera slots per layout, for the PTZ camera dropdowns.
 - The Studio advertises `_livedeck-api._tcp` (TXT `role=studio`) so the connection can be picked from the list.
 
-MIT.
+## License
+
+MIT, see [LICENSE](./LICENSE).

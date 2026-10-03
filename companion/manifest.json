@@ -1,36 +1,39 @@
 {
+	"$schema": "../node_modules/@companion-module/base/assets/manifest.schema.json",
+	"type": "connection",
 	"id": "livedeck-studio",
-	"name": "LiveDeck Studio",
+	"name": "LiveDeck",
 	"shortname": "livedeck-studio",
-	"description": "Control a LiveDeck Studio (iPad / iPhone / Android vision mixer): cue and take layouts, transitions, recording, NDI and RTMP outputs, audio, Run a Show, talkback and the auto-switch fallback. Live feedbacks over the Studio's event stream.",
-	"version": "0.1.0",
+	"description": "Control the LiveDeck vision mixer (iPad, iPhone, Mac, Android): take and cue layouts, GO LIVE, transitions, recording, NDI / RTMP / HLS outputs, PTZ presets, audio, Run a Show and talkback, with live button feedback.",
+	"version": "0.0.0",
 	"license": "MIT",
-	"repository": "https://github.com/rihani/companion-module-livedeck-studio",
+	"repository": "git+https://github.com/rihani/companion-module-livedeck-studio.git",
 	"bugs": "https://github.com/rihani/companion-module-livedeck-studio/issues",
 	"maintainers": [
 		{
-			"name": "LiveDeck",
-			"email": "support@live-deck.app"
+			"name": "rihani",
+			"github": "rihani"
 		}
 	],
-	"legacyIds": [
-		"livedeck"
-	],
+	"legacyIds": ["livedeck"],
 	"runtime": {
 		"type": "node22",
 		"api": "nodejs-ipc",
 		"apiVersion": "0.0.0",
 		"entrypoint": "../dist/main.js"
 	},
-	"manufacturer": "LiveDeck",
-	"products": [
-		"LiveDeck Studio"
-	],
+	"manufacturer": "Manar Labs",
+	"products": ["LiveDeck"],
 	"keywords": [
-		"vision mixer",
-		"switcher",
 		"NDI",
+		"switcher",
+		"video mixer",
+		"vision mixer",
+		"PTZ",
+		"live streaming",
 		"RTMP",
+		"recording",
+		"talkback",
 		"iPad",
 		"Android"
 	],
@@ -43,7 +46,5 @@
 			},
 			"addressFamily": "ipv4"
 		}
-	},
-	"type": "connection",
-	"$schema": "../node_modules/@companion-module/base/assets/manifest.schema.json"
+	}
 }
