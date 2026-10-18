@@ -2,7 +2,7 @@
 
 [Bitfocus Companion](https://bitfocus.io/companion) module for **LiveDeck**, the vision mixer for iPad, iPhone, Mac and Android ([manarlabs.com/apps/livedeck](https://manarlabs.com/apps/livedeck/)).
 
-Take and cue layouts, GO LIVE, transitions, recording, NDI / RTMP / HLS outputs, PTZ presets and moves, audio (mute / solo / faders / follow), Run a Show, talkback, satellite messages, Program resolution / orientation and the auto switch-away fallback. Scoreboard: add points, game clock, period, score bug and scoreboard on air, undo / swap / final, with a ticking clock variable and feedbacks for clock running, bug on air, leading team and more. Buttons follow the mixer live through the Studio's event stream (`GET /api/events`).
+Take and cue layouts, GO LIVE, transitions, recording, NDI / RTMP / HLS outputs, PTZ presets and moves, audio (mute / solo / faders / follow), Run a Show, talkback, satellite messages, Program resolution / orientation and the auto switch-away fallback. Scoreboard: add points, game clock, period, score bug and scoreboard on air, undo / swap / final, with a ticking clock variable and feedbacks for clock running, bug on air, leading team and more. Fundraiser: add donations (typed or quick +10 / +50 / +100 / +500), undo, correct the totals, put the fundraiser bug on air, change its look, celebrate, with variables for the amount raised, percent, to go and latest donor, and feedbacks for the minimum, goal and stretch goal reached. Buttons follow the mixer live through the Studio's event stream (`GET /api/events`).
 
 User documentation (setup, actions, feedbacks, variables, presets, troubleshooting): [companion/HELP.md](./companion/HELP.md).
 
@@ -32,6 +32,7 @@ To try a build, point Companion's **Developer modules path** at a folder holding
 - `POST /api/command` — the generic command passthrough the module uses for every action.
 - `GET /api/ptz/cameras` — PTZ camera slots per layout, for the PTZ camera dropdowns.
 - `POST /api/score/…` — the scoreboard routes (add, clock, period, bug, board, undo, swap, final, shot). Every reply is the whole score state, and `/api/state` and the event stream (`sc`) carry the same object plus `scoreSkins` / `scoreBoards`; the clock is worked out locally from `ms` / `at` / `run` with `serverNow` skew correction.
+- `POST /api/command` `{"action":"fund","op":…}` — the fundraiser operations (add, undo, set, patch, show, celebrate, styleBug, styleLayout …). Money you send is in whole currency units; the state (`/api/state` and the event stream, key `fund`, campaign under `fund.fund`) carries integer minor units, which the module divides by 10^dec for display.
 - The Studio advertises `_livedeck-api._tcp` (TXT `role=studio`) so the connection can be picked from the list.
 
 ## License

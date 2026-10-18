@@ -1,6 +1,7 @@
 import { combineRgb, type DropdownChoice } from '@companion-module/base'
 import { GO_LIVE_OUTPUTS, type GoLiveOutput } from './actions.js'
 import { liveNow } from './api.js'
+import { fundSkinOnAir, milestoneHit } from './fund.js'
 import { skinOnAir } from './score.js'
 import type LiveDeckInstance from './main.js'
 
@@ -36,6 +37,10 @@ export type FeedbacksSchema = {
 	score_in_break: { type: 'boolean'; options: Record<string, never> }
 	score_period_is: { type: 'boolean'; options: { n: number } }
 	score_leading: { type: 'boolean'; options: { team: 'home' | 'away' } }
+	fund_on_air: { type: 'boolean'; options: Record<string, never> }
+	fund_min_reached: { type: 'boolean'; options: Record<string, never> }
+	fund_goal_reached: { type: 'boolean'; options: Record<string, never> }
+	fund_stretch_reached: { type: 'boolean'; options: Record<string, never> }
 }
 
 export function UpdateFeedbacks(self: LiveDeckInstance): void {
@@ -248,6 +253,34 @@ export function UpdateFeedbacks(self: LiveDeckInstance): void {
 				const a = g?.away?.score ?? 0
 				return f.options.team === 'home' ? h > a : a > h
 			},
+		},
+		fund_on_air: {
+			type: 'boolean',
+			name: 'Fundraiser: bug is on air',
+			options: [],
+			defaultStyle: { bgcolor: RED, color: WHITE },
+			callback: () => !!self.fund.bugOn || !!self.fund.fund?.show?.on || self.fundSkins.some(fundSkinOnAir),
+		},
+		fund_min_reached: {
+			type: 'boolean',
+			name: 'Fundraiser: minimum reached',
+			options: [],
+			defaultStyle: { bgcolor: AMBER, color: BLACK },
+			callback: () => milestoneHit(self.fund.fund, 'min'),
+		},
+		fund_goal_reached: {
+			type: 'boolean',
+			name: 'Fundraiser: goal reached',
+			options: [],
+			defaultStyle: { bgcolor: GREEN, color: BLACK },
+			callback: () => milestoneHit(self.fund.fund, 'target'),
+		},
+		fund_stretch_reached: {
+			type: 'boolean',
+			name: 'Fundraiser: stretch goal reached',
+			options: [],
+			defaultStyle: { bgcolor: BLUE, color: WHITE },
+			callback: () => milestoneHit(self.fund.fund, 'stretch'),
 		},
 		rec_silent: {
 			type: 'boolean',

@@ -44,6 +44,13 @@ export type VariablesSchema = {
 	undo_label: string
 	bug_on: string
 	board_on: string
+	fund_raised: string
+	fund_pct: number
+	fund_target: string
+	fund_togo: string
+	fund_donors: number
+	fund_latest: string
+	fund_undo_label: string
 } & LayoutNameVars
 
 export function UpdateVariableDefinitions(self: LiveDeckInstance): void {
@@ -87,6 +94,15 @@ export function UpdateVariableDefinitions(self: LiveDeckInstance): void {
 		undo_label: { name: 'Score: what Undo would take back' },
 		bug_on: { name: 'Score: bug on air (Yes/No)' },
 		board_on: { name: 'Score: scoreboard on air (Yes/No)' },
+	})
+	Object.assign(defs, {
+		fund_raised: { name: 'Fundraiser: raised (with currency symbol)' },
+		fund_pct: { name: 'Fundraiser: percent of the goal raised' },
+		fund_target: { name: 'Fundraiser: goal' },
+		fund_togo: { name: 'Fundraiser: still to go' },
+		fund_donors: { name: 'Fundraiser: number of donors' },
+		fund_latest: { name: 'Fundraiser: latest donation (Fatima A. $100)' },
+		fund_undo_label: { name: 'Fundraiser: what Undo would take back' },
 	})
 	for (let i = 1; i <= LAYOUT_SLOTS; i++) defs[`layout_${i}_name`] = { name: `Layout ${i} name` }
 	self.setVariableDefinitions(defs as never)

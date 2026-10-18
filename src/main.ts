@@ -4,6 +4,7 @@ import { LiveDeckApi, type CompactState } from './api.js'
 import { DEFAULT_PORT, GetConfigFields, type LiveDeckConfig, type LiveDeckSecrets } from './config.js'
 import { UpdateFeedbacks, type FeedbacksSchema } from './feedbacks.js'
 import { UpdatePresets } from './presets.js'
+import { fundVariableValues, type FundSkin, type FundState } from './fund.js'
 import { scoreVariableValues, type ScoreBoard, type ScoreSkin, type ScoreState } from './score.js'
 import { UpgradeScripts } from './upgrades.js'
 import { UpdateVariableDefinitions, variableValues, type VariablesSchema } from './variables.js'
@@ -35,6 +36,9 @@ export default class LiveDeckInstance extends InstanceBase<ModuleSchema> {
 	scoreBoards: ScoreBoard[] = []
 	/** Studio wall clock minus ours, from the last `serverNow`; makes the local clock tick right. */
 	scoreSkew = 0
+	/** Fundraiser state, kept across partial events. */
+	fund: FundState = {}
+	fundSkins: FundSkin[] = []
 	private scoreText: Record<string, string> = {}
 	private scoreTimer: NodeJS.Timeout | null = null
 	private defSig = ''
@@ -113,6 +117,38 @@ export default class LiveDeckInstance extends InstanceBase<ModuleSchema> {
 		} catch (e) {
 			this.log('warn', `score ${path} failed: ${(e as Error).message}`)
 		}
+	}
+
+	/**
+	 * One fundraiser operation (POST /api/command {"action":"fund","op":…}). Money in `params` is MAJOR units.
+	 * A reply that carries the campaign is applied at once; otherwise the next event brings it. Failures are logged.
+	 */
+	async fundCall(op: string, params: Record<string, unknown> = {}): Promise<void> {
+		if (!this.api) {
+			this.log('warn', `Not connected to a Studio — fund ${op} not sent`)
+			return
+		}
+		try {
+			const r = (await this.api.request('POST', '/api/command', { action: 'fund', op, ...params })) as FundState & {
+				ok?: boolean
+				error?: string
+			}
+			if (r && r.ok === false) {
+				this.log('warn', `fund ${op} failed: ${r.error ?? 'refused'}`)
+				return
+			}
+			if (r && r.fund) {
+				this.fund = r
+				this.pushFundVars()
+				this.checkAllFeedbacks()
+			}
+		} catch (e) {
+			this.log('warn', `fund ${op} failed: ${(e as Error).message}`)
+		}
+	}
+
+	private pushFundVars(): void {
+		this.setVariableValues(fundVariableValues(this.fund) as never)
 	}
 
 	private applyScore(sc: ScoreState): void {
@@ -196,6 +232,9 @@ export default class LiveDeckInstance extends InstanceBase<ModuleSchema> {
 		if (sc && sc.game) this.applyScoreQuiet(sc, s.serverNow)
 		if (Array.isArray(s.scoreSkins)) this.scoreSkins = s.scoreSkins
 		if (Array.isArray(s.scoreBoards)) this.scoreBoards = s.scoreBoards
+		// Fundraiser: same rule, an event without `fund` keeps the last campaign.
+		if (s.fund && s.fund.fund) this.fund = s.fund
+		if (Array.isArray(s.fundSkins)) this.fundSkins = s.fundSkins
 		this.state = s
 		if (!this.gotFirstState) {
 			this.gotFirstState = true
@@ -210,6 +249,7 @@ export default class LiveDeckInstance extends InstanceBase<ModuleSchema> {
 			(s.audio ?? []).map((a) => [a.id, a.name]),
 			this.takeStyles.map((t) => t.id),
 			this.scoreSkins.map((k) => [k.id, k.name]),
+			this.fundSkins.map((k) => [k.id, k.name]),
 		])
 		if (sig !== this.defSig) {
 			this.defSig = sig
@@ -218,6 +258,7 @@ export default class LiveDeckInstance extends InstanceBase<ModuleSchema> {
 		}
 		this.setVariableValues(variableValues(s))
 		this.pushScoreVars()
+		this.pushFundVars()
 		this.checkAllFeedbacks()
 	}
 

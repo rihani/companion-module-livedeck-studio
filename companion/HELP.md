@@ -31,11 +31,12 @@ More about LiveDeck: [manarlabs.com/apps/livedeck](https://manarlabs.com/apps/li
 - **Talkback and satellites:** Talkback on / off (hold to talk), Who hears talkback (the satellite on air, all satellites, or one satellite), Message the satellites.
 - **Program:** Program resolution (480p / 720p / 1080p), Program orientation (landscape / portrait), Auto switch-away when the on-air source drops, and its fallback layout.
 - **Score** (needs a Studio with the Scoreboard): Add points (a negative number takes points off), Set a team's score, Game clock (start / stop / toggle / reset to the period length), Set the game clock (`m:ss`), Period next / previous, Bug on air (show / hide / toggle, for every score bug or one chosen bug), Scoreboard layout (cue / take), Undo, Swap sides, Final, Shot clock (reset / start / stop).
+- **Fundraiser** (needs a Studio with the Fundraiser): Add a donation (amount in whole currency units, optional donor name), Quick donation (10 / 50 / 100 / 500, anonymous), Undo, Correct the totals (raised and/or donors), Show on air / Take off air / Toggle, Show gauge / numbers / both, Look (style A thermometer, B dial, C strip, D tote board, with a theme and bug corner, for the bug, the layout or both), Celebrate.
 - **Raw command (advanced):** any command from the Studio's API docs page (`http://<studio>:<port>/api`), as JSON.
 
 ### Feedbacks
 
-Layout is on air · Layout is cued · Layout has a source that stopped sending · GO LIVE: on air · GO LIVE: output is ticked · Recording · Recording with no audio · Streaming · Stream connecting · NDI output on · HLS pull server on · Channel muted · Channel soloed · Audio follows Program · Program health: warning or worse · Program health: bad · Auto switch-away is on · Score: game clock is running · bug is on air (any, or one bug) · scoreboard is on air · game is final · between periods · period is N · team is leading.
+Layout is on air · Layout is cued · Layout has a source that stopped sending · GO LIVE: on air · GO LIVE: output is ticked · Recording · Recording with no audio · Streaming · Stream connecting · NDI output on · HLS pull server on · Channel muted · Channel soloed · Audio follows Program · Program health: warning or worse · Program health: bad · Auto switch-away is on · Score: game clock is running · bug is on air (any, or one bug) · scoreboard is on air · game is final · between periods · period is N · team is leading · Fundraiser: bug is on air · minimum reached · goal reached · stretch goal reached.
 
 ### Variables
 
@@ -56,6 +57,9 @@ Layout is on air · Layout is cued · Layout has a source that stopped sending �
 | `period`, `period_label`, `status`                   | Period number, label (`Q2`, `1H`, `SET 3`), status (`HALF TIME`, `FINAL`; blank in play) |
 | `sport`, `game_title`, `undo_label`                  | Sport, game title, what Undo would take back                                             |
 | `bug_on`, `board_on`                                 | Score bug / scoreboard on air (Yes / No)                                                 |
+| `fund_raised`, `fund_target`, `fund_togo`            | Fundraiser amounts with the currency symbol (`$18,450.00`)                               |
+| `fund_pct`, `fund_donors`                            | Percent of the goal raised (rounded down), number of donors                              |
+| `fund_latest`, `fund_undo_label`                     | Latest donation (`Fatima A. $100.00`), what Undo would take back                         |
 | `layout_count`, `layout_1_name` … `layout_16_name`   | Number of layouts and each layout's name                                                 |
 
 ### Presets
@@ -68,6 +72,7 @@ Layout is on air · Layout is cued · Layout has a source that stopped sending �
 - **Run a Show:** Start, Next (shows the step number), End.
 - **Talkback:** Talk (hold), Talk to the satellite on air, Talk to all satellites.
 - **Score:** each team's score button (green while it leads) with +1 / +2 / +3 / -1, the game clock (shows the time, green while running) with reset, next / previous period and shot clock reset, score bug on / off, scoreboard cue / take, one button per score bug, Undo, Swap sides and Final. Look for the **Score** section in the preset list.
+- **Fundraiser:** quick +10 / +50 / +100 / +500, the amount raised and percent (amber, green, blue as the minimum, goal and stretch goal are reached), Undo, bug on / off (red while on air) and Celebrate. Look for the **Fundraiser** section in the preset list.
 - **Status:** On air (layout name), Health (CPU and health level), Auto switch-away.
 
 ### Troubleshooting

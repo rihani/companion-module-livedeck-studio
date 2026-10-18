@@ -407,6 +407,53 @@ export function UpdatePresets(self: LiveDeckInstance): void {
 		]),
 	]
 
+	// ---- Fundraiser ----
+	const fundBtn = (
+		id: string,
+		name: string,
+		text: string,
+		actionId: string,
+		options: Record<string, unknown>,
+		feedbacks: Preset['feedbacks'] = [],
+		size: '14' | '18' | '24' = '14',
+	): string =>
+		add(id, {
+			type: 'simple',
+			name,
+			keywords: ['fundraiser', 'fund', 'donation'],
+			style: { text, size, color: WHITE, bgcolor: DARK },
+			steps: press([{ actionId, options } as never]),
+			feedbacks,
+		})
+	const fundQuick = [10, 50, 100, 500].map((n) =>
+		fundBtn(`fund_add_${n}`, `+${n}`, `+${n}`, 'fund_quick', { preset: String(n) }, [], '24'),
+	)
+	const fundTotals = [
+		add('fund_total', {
+			type: 'simple',
+			name: 'Raised (shows the total)',
+			keywords: ['fundraiser', 'fund', 'total'],
+			style: { text: `${V('fund_raised')}\n${V('fund_pct')}%`, size: '18', color: WHITE, bgcolor: DARK },
+			steps: press([]),
+			feedbacks: [
+				{ feedbackId: 'fund_stretch_reached', options: {}, style: { bgcolor: BLUE, color: WHITE } },
+				{ feedbackId: 'fund_goal_reached', options: {}, style: { bgcolor: GREEN, color: BLACK } },
+				{ feedbackId: 'fund_min_reached', options: {}, style: { bgcolor: AMBER, color: BLACK } },
+			],
+		}),
+		fundBtn('fund_undo', 'Undo', `UNDO\n${V('fund_undo_label')}`, 'fund_undo', {}),
+		fundBtn(
+			'fund_show',
+			'Show / hide on air',
+			'FUND\nBUG',
+			'fund_toggle',
+			{},
+			[{ feedbackId: 'fund_on_air', options: {}, style: { bgcolor: RED, color: WHITE } }],
+			'18',
+		),
+		fundBtn('fund_celebrate', 'Celebrate', 'CELE-\nBRATE', 'fund_celebrate', {}),
+	]
+
 	const structure: CompanionPresetSection<ModuleSchema>[] = [
 		{
 			id: 'golive',
@@ -506,6 +553,27 @@ export function UpdatePresets(self: LiveDeckInstance): void {
 					presets: scoreBugs,
 				},
 				{ id: 'score_game', type: 'simple', name: 'Game', presets: scoreGame },
+			],
+		},
+		{
+			id: 'fundraiser',
+			name: 'Fundraiser',
+			definitions: [
+				{
+					id: 'fund_quick',
+					type: 'simple',
+					name: 'Quick donations',
+					description: 'Each button adds an anonymous donation of that amount (whole currency units).',
+					presets: fundQuick,
+				},
+				{
+					id: 'fund_control',
+					type: 'simple',
+					name: 'Totals and control',
+					description:
+						'The first button shows the amount raised and percent of the goal (amber, green, blue as the minimum, goal and stretch goal are reached; display only).',
+					presets: fundTotals,
+				},
 			],
 		},
 		{

@@ -4,6 +4,7 @@
  * `/api/state` when the stream is not available.
  */
 import http from 'node:http'
+import type { FundSkin, FundState } from './fund.js'
 import type { ScoreBoard, ScoreSkin, ScoreState } from './score.js'
 
 export interface LayoutInfo {
@@ -76,6 +77,9 @@ export interface CompactState {
 	sc?: ScoreState
 	scoreSkins?: ScoreSkin[]
 	scoreBoards?: ScoreBoard[]
+	/** Fundraiser: `fund` is the reply object (campaign under `fund.fund`) in the full state and the event stream. */
+	fund?: FundState
+	fundSkins?: FundSkin[]
 	serverNow?: number
 }
 

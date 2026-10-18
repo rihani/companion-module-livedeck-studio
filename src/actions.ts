@@ -1,5 +1,6 @@
 import type { DropdownChoice } from '@companion-module/base'
 import { liveNow } from './api.js'
+import { FUND_STYLES, fundStyleId, fundThemeFor, parseMajor } from './fund.js'
 import type LiveDeckInstance from './main.js'
 
 type OnOff = 'toggle' | 'on' | 'off'
@@ -41,6 +42,16 @@ export type ActionsSchema = {
 	failover_target: { options: { layout: string } }
 	monitor_mute: { options: { mode: OnOff } }
 	raw_command: { options: { json: string } }
+	fund_add: { options: { amount: number; name: string } }
+	fund_quick: { options: { preset: string } }
+	fund_undo: { options: Record<string, never> }
+	fund_set: { options: { raised: string; donors: string } }
+	fund_show: { options: Record<string, never> }
+	fund_hide: { options: Record<string, never> }
+	fund_toggle: { options: Record<string, never> }
+	fund_mode: { options: { mode: 'gauge' | 'numbers' | 'both' } }
+	fund_style: { options: { target: FundTarget; style: string; theme: string; pos: string } }
+	fund_celebrate: { options: Record<string, never> }
 	score_add: { options: { team: ScoreTeamId; value: number } }
 	score_set: { options: { team: ScoreTeamId; value: number } }
 	score_clock: { options: { mode: 'toggle' | 'start' | 'stop' | 'reset' } }
@@ -53,6 +64,7 @@ export type ActionsSchema = {
 	score_final: { options: Record<string, never> }
 	score_shot: { options: { mode: 'reset' | 'start' | 'stop' } }
 }
+export type FundTarget = 'bug' | 'layout' | 'both'
 export type ScoreTeamId = 'home' | 'away'
 
 const ONOFF: DropdownChoice[] = [
@@ -121,6 +133,7 @@ export function UpdateActions(self: LiveDeckInstance): void {
 	const channels: DropdownChoice[] = (self.state.audio ?? []).map((a) => ({ id: a.id, label: a.name }))
 	const firstLayout = String(layouts[0]?.id ?? '')
 	const firstChannel = String(channels[0]?.id ?? '')
+	const fundCall = async (op: string, params?: Record<string, unknown>): Promise<void> => self.fundCall(op, params)
 	const scoreCall = async (path: string): Promise<void> => self.scoreCall(path)
 	const skinChoices: DropdownChoice[] = self.scoreSkins.map((k) => ({ id: k.id, label: k.name || k.style || k.id }))
 	const teamOpt = {
@@ -560,6 +573,146 @@ export function UpdateActions(self: LiveDeckInstance): void {
 			],
 			callback: async (a) => scoreCall(`shot/${a.options.mode}`),
 		},
+		fund_add: {
+			name: 'Fundraiser: add a donation',
+			description:
+				'Amount in whole currency units (50 = $50; 12.5 is fine when the campaign has cents). The name is optional.',
+			options: [
+				{ type: 'number', id: 'amount', label: 'Amount', default: 50, min: 0.01, max: 100000000 },
+				{ type: 'textinput', id: 'name', label: 'Donor name (blank = Anonymous)', default: '', useVariables: true },
+			],
+			callback: async (a) => {
+				const name = String(String(a.options.name ?? '')).trim()
+				await fundCall('add', { amount: Number(a.options.amount), ...(name ? { name } : {}) })
+			},
+		},
+		fund_quick: {
+			name: 'Fundraiser: quick donation',
+			description: 'Add an anonymous donation of a preset amount.',
+			options: [
+				{
+					type: 'dropdown',
+					id: 'preset',
+					label: 'Amount',
+					choices: ['10', '50', '100', '500'].map((v) => ({ id: v, label: v })),
+					default: '50',
+				},
+			],
+			callback: async (a) => fundCall('add', { amount: Number(a.options.preset) }),
+		},
+		fund_undo: { name: 'Fundraiser: undo', options: [], callback: async () => fundCall('undo') },
+		fund_set: {
+			name: 'Fundraiser: correct the totals',
+			description: 'Set the raised total (whole currency units) and/or the donor count. Leave a box blank to keep it.',
+			options: [
+				{ type: 'textinput', id: 'raised', label: 'Raised', default: '', useVariables: true },
+				{ type: 'textinput', id: 'donors', label: 'Donors', default: '', useVariables: true },
+			],
+			callback: async (a) => {
+				const raised = parseMajor(String(a.options.raised ?? ''))
+				const donors = parseMajor(String(a.options.donors ?? ''))
+				if (raised === undefined && donors === undefined) {
+					self.log('warn', 'Fundraiser set: enter a raised total and/or a donor count')
+					return
+				}
+				await fundCall('set', {
+					...(raised !== undefined ? { raised } : {}),
+					...(donors !== undefined ? { donors: Math.round(donors) } : {}),
+				})
+			},
+		},
+		fund_show: { name: 'Fundraiser: show on air', options: [], callback: async () => fundCall('show', { on: true }) },
+		fund_hide: { name: 'Fundraiser: take off air', options: [], callback: async () => fundCall('show', { on: false }) },
+		fund_toggle: {
+			name: 'Fundraiser: show / hide (toggle)',
+			options: [],
+			callback: async () => fundCall('show', { on: !self.fund.bugOn }),
+		},
+		fund_mode: {
+			name: 'Fundraiser: show gauge, numbers or both',
+			options: [
+				{
+					type: 'dropdown',
+					id: 'mode',
+					label: 'Show',
+					choices: [
+						{ id: 'gauge', label: 'Gauge only' },
+						{ id: 'numbers', label: 'Numbers only' },
+						{ id: 'both', label: 'Gauge and numbers' },
+					],
+					default: 'both',
+				},
+			],
+			callback: async (a) => fundCall('patch', { show: { as: a.options.mode } }),
+		},
+		fund_style: {
+			name: 'Fundraiser: look (style and theme)',
+			description:
+				"Styles: A thermometer, B dial, C strip, D tote board. The theme must belong to the style (otherwise the style's first theme stays as it is).",
+			options: [
+				{
+					type: 'dropdown',
+					id: 'target',
+					label: 'Change',
+					choices: [
+						{ id: 'bug', label: 'On-air bug' },
+						{ id: 'layout', label: 'Full-screen layout' },
+						{ id: 'both', label: 'Both' },
+					],
+					default: 'bug',
+				},
+				{
+					type: 'dropdown',
+					id: 'style',
+					label: 'Style',
+					choices: FUND_STYLES.map((s) => ({ id: s.id, label: `${s.letter} ${s.name}` })),
+					default: 'strip',
+				},
+				{
+					type: 'dropdown',
+					id: 'theme',
+					label: 'Theme',
+					choices: [
+						{ id: '', label: "Keep the style's current theme" },
+						...FUND_STYLES.flatMap((s) => s.themes.map((t) => ({ id: t, label: `${s.letter} ${s.name}: ${t}` }))),
+					],
+					default: '',
+				},
+				{
+					type: 'dropdown',
+					id: 'pos',
+					label: 'Bug corner',
+					choices: [
+						{ id: '', label: 'Keep' },
+						{ id: 'tl', label: 'Top left' },
+						{ id: 'tr', label: 'Top right' },
+						{ id: 'bl', label: 'Bottom left' },
+						{ id: 'br', label: 'Bottom right' },
+					],
+					default: '',
+				},
+			],
+			callback: async (a) => {
+				const style = fundStyleId(String(a.options.style))
+				if (!style) {
+					self.log('warn', `Fundraiser look: unknown style "${String(a.options.style)}"`)
+					return
+				}
+				const theme = fundThemeFor(style, String(a.options.theme))
+				if (a.options.theme && !theme)
+					self.log('warn', `Fundraiser look: theme "${a.options.theme}" is not a ${style} theme`)
+				const t = a.options.target
+				if (t === 'bug' || t === 'both') {
+					await fundCall('styleBug', {
+						style,
+						...(theme ? { theme } : {}),
+						...(a.options.pos ? { pos: a.options.pos } : {}),
+					})
+				}
+				if (t === 'layout' || t === 'both') await fundCall('styleLayout', { style, ...(theme ? { theme } : {}) })
+			},
+		},
+		fund_celebrate: { name: 'Fundraiser: celebrate', options: [], callback: async () => fundCall('celebrate') },
 		raw_command: {
 			name: 'Raw command (advanced)',
 			description: 'Any command from the Studio\'s /api docs page, as JSON, e.g. {"action":"cue","id":"…"}',
