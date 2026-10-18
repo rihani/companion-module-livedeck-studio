@@ -2,7 +2,7 @@
 
 [Bitfocus Companion](https://bitfocus.io/companion) module for **LiveDeck**, the vision mixer for iPad, iPhone, Mac and Android ([manarlabs.com/apps/livedeck](https://manarlabs.com/apps/livedeck/)).
 
-Take and cue layouts, GO LIVE, transitions, recording, NDI / RTMP / HLS outputs, PTZ presets and moves, audio (mute / solo / faders / follow), Run a Show, talkback, satellite messages, Program resolution / orientation and the auto switch-away fallback. Buttons follow the mixer live through the Studio's event stream (`GET /api/events`).
+Take and cue layouts, GO LIVE, transitions, recording, NDI / RTMP / HLS outputs, PTZ presets and moves, audio (mute / solo / faders / follow), Run a Show, talkback, satellite messages, Program resolution / orientation and the auto switch-away fallback. Scoreboard: add points, game clock, period, score bug and scoreboard on air, undo / swap / final, with a ticking clock variable and feedbacks for clock running, bug on air, leading team and more. Buttons follow the mixer live through the Studio's event stream (`GET /api/events`).
 
 User documentation (setup, actions, feedbacks, variables, presets, troubleshooting): [companion/HELP.md](./companion/HELP.md).
 
@@ -31,6 +31,7 @@ To try a build, point Companion's **Developer modules path** at a folder holding
 - `GET /api/events` — `text/event-stream`, `event: state` with a compact state on change, `: ping` every 15 s.
 - `POST /api/command` — the generic command passthrough the module uses for every action.
 - `GET /api/ptz/cameras` — PTZ camera slots per layout, for the PTZ camera dropdowns.
+- `POST /api/score/…` — the scoreboard routes (add, clock, period, bug, board, undo, swap, final, shot). Every reply is the whole score state, and `/api/state` and the event stream (`sc`) carry the same object plus `scoreSkins` / `scoreBoards`; the clock is worked out locally from `ms` / `at` / `run` with `serverNow` skew correction.
 - The Studio advertises `_livedeck-api._tcp` (TXT `role=studio`) so the connection can be picked from the list.
 
 ## License

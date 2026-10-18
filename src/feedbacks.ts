@@ -1,6 +1,7 @@
 import { combineRgb, type DropdownChoice } from '@companion-module/base'
 import { GO_LIVE_OUTPUTS, type GoLiveOutput } from './actions.js'
 import { liveNow } from './api.js'
+import { skinOnAir } from './score.js'
 import type LiveDeckInstance from './main.js'
 
 export const RED = combineRgb(216, 44, 44)
@@ -28,12 +29,20 @@ export type FeedbacksSchema = {
 	rec_silent: { type: 'boolean'; options: Record<string, never> }
 	live: { type: 'boolean'; options: Record<string, never> }
 	go_live_selected: { type: 'boolean'; options: { output: GoLiveOutput } }
+	score_clock_running: { type: 'boolean'; options: Record<string, never> }
+	score_bug_on: { type: 'boolean'; options: { skin: string } }
+	score_board_on: { type: 'boolean'; options: Record<string, never> }
+	score_final: { type: 'boolean'; options: Record<string, never> }
+	score_in_break: { type: 'boolean'; options: Record<string, never> }
+	score_period_is: { type: 'boolean'; options: { n: number } }
+	score_leading: { type: 'boolean'; options: { team: 'home' | 'away' } }
 }
 
 export function UpdateFeedbacks(self: LiveDeckInstance): void {
 	const s = () => self.state
 	const layouts: DropdownChoice[] = (self.state.layouts ?? []).map((l) => ({ id: l.id, label: l.name }))
 	const channels: DropdownChoice[] = (self.state.audio ?? []).map((a) => ({ id: a.id, label: a.name }))
+	const skinChoices: DropdownChoice[] = self.scoreSkins.map((k) => ({ id: k.id, label: k.name || k.style || k.id }))
 	const layoutOpt = {
 		type: 'dropdown' as const,
 		id: 'layout' as const,
@@ -163,6 +172,82 @@ export function UpdateFeedbacks(self: LiveDeckInstance): void {
 			options: [{ type: 'dropdown', id: 'output', label: 'Output', choices: GO_LIVE_OUTPUTS, default: 'ndi' }],
 			defaultStyle: { bgcolor: BLUE, color: WHITE },
 			callback: (f) => !!s().liveSelection?.[f.options.output],
+		},
+		score_clock_running: {
+			type: 'boolean',
+			name: 'Score: game clock is running',
+			options: [],
+			defaultStyle: { bgcolor: GREEN, color: BLACK },
+			callback: () => !!self.score.game?.clock?.run && self.score.game.clock.dir !== 'none',
+		},
+		score_bug_on: {
+			type: 'boolean',
+			name: 'Score: bug is on air',
+			options: [
+				{
+					type: 'dropdown',
+					id: 'skin',
+					label: 'Bug',
+					choices: [{ id: '', label: 'Any score bug' }, ...skinChoices],
+					default: '',
+				},
+			],
+			defaultStyle: { bgcolor: RED, color: WHITE },
+			callback: (f) =>
+				f.options.skin
+					? skinOnAir(self.scoreSkins.find((k) => k.id === f.options.skin))
+					: !!self.score.bugOn || self.scoreSkins.some(skinOnAir),
+		},
+		score_board_on: {
+			type: 'boolean',
+			name: 'Score: scoreboard is on air',
+			options: [],
+			defaultStyle: { bgcolor: RED, color: WHITE },
+			callback: () => !!self.score.boardOn,
+		},
+		score_final: {
+			type: 'boolean',
+			name: 'Score: game is final',
+			options: [],
+			defaultStyle: { bgcolor: AMBER, color: BLACK },
+			callback: () => !!self.score.game?.final,
+		},
+		score_in_break: {
+			type: 'boolean',
+			name: 'Score: between periods',
+			options: [],
+			defaultStyle: { bgcolor: AMBER, color: BLACK },
+			callback: () => !!self.score.game?.brk && !self.score.game.final,
+		},
+		score_period_is: {
+			type: 'boolean',
+			name: 'Score: period is N',
+			options: [{ type: 'number', id: 'n', label: 'Period', default: 1, min: 1, max: 20 }],
+			defaultStyle: { bgcolor: BLUE, color: WHITE },
+			callback: (f) => (self.score.game?.period ?? 0) === Number(f.options.n),
+		},
+		score_leading: {
+			type: 'boolean',
+			name: 'Score: team is leading',
+			options: [
+				{
+					type: 'dropdown',
+					id: 'team',
+					label: 'Team',
+					choices: [
+						{ id: 'home', label: 'Home' },
+						{ id: 'away', label: 'Away' },
+					],
+					default: 'home',
+				},
+			],
+			defaultStyle: { bgcolor: GREEN, color: BLACK },
+			callback: (f) => {
+				const g = self.score.game
+				const h = g?.home?.score ?? 0
+				const a = g?.away?.score ?? 0
+				return f.options.team === 'home' ? h > a : a > h
+			},
 		},
 		rec_silent: {
 			type: 'boolean',

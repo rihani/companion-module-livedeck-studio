@@ -27,6 +27,23 @@ export type VariablesSchema = {
 	failover: string
 	failover_target: string
 	layout_count: number
+	score_home: number
+	score_away: number
+	home_name: string
+	away_name: string
+	home_short: string
+	away_short: string
+	clock: string
+	clock_running: string
+	shot: string
+	period: number
+	period_label: string
+	status: string
+	sport: string
+	game_title: string
+	undo_label: string
+	bug_on: string
+	board_on: string
 } & LayoutNameVars
 
 export function UpdateVariableDefinitions(self: LiveDeckInstance): void {
@@ -52,6 +69,25 @@ export function UpdateVariableDefinitions(self: LiveDeckInstance): void {
 		failover_target: { name: 'Auto switch-away fallback layout' },
 		layout_count: { name: 'Number of layouts' },
 	}
+	Object.assign(defs, {
+		score_home: { name: 'Score: home' },
+		score_away: { name: 'Score: away' },
+		home_name: { name: 'Score: home team name' },
+		away_name: { name: 'Score: away team name' },
+		home_short: { name: 'Score: home short name' },
+		away_short: { name: 'Score: away short name' },
+		clock: { name: 'Score: game clock (7:42, ticks locally)' },
+		clock_running: { name: 'Score: game clock running (Yes/No)' },
+		shot: { name: 'Score: shot clock' },
+		period: { name: 'Score: period number' },
+		period_label: { name: 'Score: period label (Q2, 1H, SET 3)' },
+		status: { name: 'Score: status (HALF TIME, FINAL, blank in play)' },
+		sport: { name: 'Score: sport' },
+		game_title: { name: 'Score: game title' },
+		undo_label: { name: 'Score: what Undo would take back' },
+		bug_on: { name: 'Score: bug on air (Yes/No)' },
+		board_on: { name: 'Score: scoreboard on air (Yes/No)' },
+	})
 	for (let i = 1; i <= LAYOUT_SLOTS; i++) defs[`layout_${i}_name`] = { name: `Layout ${i} name` }
 	self.setVariableDefinitions(defs as never)
 }

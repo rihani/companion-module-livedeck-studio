@@ -4,6 +4,7 @@ import { LiveDeckApi, type CompactState } from './api.js'
 import { DEFAULT_PORT, GetConfigFields, type LiveDeckConfig, type LiveDeckSecrets } from './config.js'
 import { UpdateFeedbacks, type FeedbacksSchema } from './feedbacks.js'
 import { UpdatePresets } from './presets.js'
+import { scoreVariableValues, type ScoreBoard, type ScoreSkin, type ScoreState } from './score.js'
 import { UpgradeScripts } from './upgrades.js'
 import { UpdateVariableDefinitions, variableValues, type VariablesSchema } from './variables.js'
 
@@ -28,6 +29,14 @@ export default class LiveDeckInstance extends InstanceBase<ModuleSchema> {
 	/** PTZ cameras per layout and on Program, from GET /api/ptz/cameras (refreshed when the layouts change). */
 	ptzLayoutCams = new Map<string, PtzCam[]>()
 	ptzProgramCams: PtzCam[] = []
+	/** Scoreboard state, kept across partial events (the scorekeeper stream carries `sc` only). */
+	score: ScoreState = {}
+	scoreSkins: ScoreSkin[] = []
+	scoreBoards: ScoreBoard[] = []
+	/** Studio wall clock minus ours, from the last `serverNow`; makes the local clock tick right. */
+	scoreSkew = 0
+	private scoreText: Record<string, string> = {}
+	private scoreTimer: NodeJS.Timeout | null = null
 	private defSig = ''
 	private staleTimer: NodeJS.Timeout | null = null
 	private gotFirstState = false
@@ -42,6 +51,7 @@ export default class LiveDeckInstance extends InstanceBase<ModuleSchema> {
 		this.publishDefinitions()
 		this.updateStatus(InstanceStatus.Connecting)
 		this.connect()
+		this.scoreTimer = setInterval(() => this.tickScore(), 250)
 	}
 
 	async configUpdated(config: LiveDeckConfig, secrets: LiveDeckSecrets): Promise<void> {
@@ -57,6 +67,10 @@ export default class LiveDeckInstance extends InstanceBase<ModuleSchema> {
 	async destroy(): Promise<void> {
 		this.api?.stop()
 		this.api = null
+		if (this.scoreTimer) {
+			clearInterval(this.scoreTimer)
+			this.scoreTimer = null
+		}
 		if (this.staleTimer) {
 			clearInterval(this.staleTimer)
 			this.staleTimer = null
@@ -78,6 +92,56 @@ export default class LiveDeckInstance extends InstanceBase<ModuleSchema> {
 		} catch (e) {
 			this.log('warn', `"${String(cmd.action)}" failed: ${(e as Error).message}`)
 		}
+	}
+
+	/**
+	 * One scoreboard call (POST /api/score/…). The reply is the whole new score state, so buttons and
+	 * variables follow at once instead of waiting for the next event. Failures are logged, not thrown.
+	 */
+	async scoreCall(path: string): Promise<void> {
+		if (!this.api) {
+			this.log('warn', `Not connected to a Studio — "${path}" not sent`)
+			return
+		}
+		try {
+			const r = (await this.api.request('POST', `/api/score/${path}`)) as ScoreState & { ok?: boolean; error?: string }
+			if (r && r.ok === false) {
+				this.log('warn', `score ${path} failed: ${r.error ?? 'refused'}`)
+				return
+			}
+			if (r && r.game) this.applyScore(r)
+		} catch (e) {
+			this.log('warn', `score ${path} failed: ${(e as Error).message}`)
+		}
+	}
+
+	private applyScore(sc: ScoreState): void {
+		this.score = sc
+		if (typeof sc.serverNow === 'number') this.scoreSkew = sc.serverNow - Date.now()
+		this.pushScoreVars()
+		this.checkAllFeedbacks()
+	}
+
+	private pushScoreVars(): void {
+		const v = scoreVariableValues(this.score, Date.now(), this.scoreSkew, this.scoreSkins)
+		this.scoreText = { clock: String(v.clock ?? ''), shot: String(v.shot ?? '') }
+		this.setVariableValues(v as never)
+	}
+
+	/** ~4 times a second: the clock text is worked out here from the Studio's `ms`/`at`/`run`, nobody streams ticks. */
+	private tickScore(): void {
+		const g = this.score.game
+		if (!g) return
+		const v = scoreVariableValues(this.score, Date.now(), this.scoreSkew, this.scoreSkins)
+		const changed: Record<string, string> = {}
+		for (const k of ['clock', 'shot'] as const) {
+			const t = String(v[k] ?? '')
+			if (this.scoreText[k] !== t) {
+				this.scoreText[k] = t
+				changed[k] = t
+			}
+		}
+		if (Object.keys(changed).length) this.setVariableValues(changed)
 	}
 
 	/** The Bonjour picker hands over "address:port"; a typed address is used when nothing was picked. */
@@ -126,6 +190,12 @@ export default class LiveDeckInstance extends InstanceBase<ModuleSchema> {
 
 	private onState(s: CompactState): void {
 		if (Array.isArray(s.takeStyles)) this.takeStyles = s.takeStyles
+		// Scoreboard: keep what an event without these keys does not mention.
+		const sc = s.score ?? s.sc
+		if (typeof s.serverNow === 'number') this.scoreSkew = s.serverNow - Date.now()
+		if (sc && sc.game) this.applyScoreQuiet(sc, s.serverNow)
+		if (Array.isArray(s.scoreSkins)) this.scoreSkins = s.scoreSkins
+		if (Array.isArray(s.scoreBoards)) this.scoreBoards = s.scoreBoards
 		this.state = s
 		if (!this.gotFirstState) {
 			this.gotFirstState = true
@@ -139,6 +209,7 @@ export default class LiveDeckInstance extends InstanceBase<ModuleSchema> {
 			(s.layouts ?? []).map((l) => [l.id, l.name, !!l.ptz]),
 			(s.audio ?? []).map((a) => [a.id, a.name]),
 			this.takeStyles.map((t) => t.id),
+			this.scoreSkins.map((k) => [k.id, k.name]),
 		])
 		if (sig !== this.defSig) {
 			this.defSig = sig
@@ -146,7 +217,14 @@ export default class LiveDeckInstance extends InstanceBase<ModuleSchema> {
 			void this.refreshPtzCameras()
 		}
 		this.setVariableValues(variableValues(s))
+		this.pushScoreVars()
 		this.checkAllFeedbacks()
+	}
+
+	private applyScoreQuiet(sc: ScoreState, topNow?: number): void {
+		this.score = sc
+		const now = typeof sc.serverNow === 'number' ? sc.serverNow : topNow
+		if (typeof now === 'number') this.scoreSkew = now - Date.now()
 	}
 
 	/** Camera slots for the PTZ dropdowns (split layouts can hold several PTZ cameras). */

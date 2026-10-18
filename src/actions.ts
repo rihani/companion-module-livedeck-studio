@@ -41,7 +41,19 @@ export type ActionsSchema = {
 	failover_target: { options: { layout: string } }
 	monitor_mute: { options: { mode: OnOff } }
 	raw_command: { options: { json: string } }
+	score_add: { options: { team: ScoreTeamId; value: number } }
+	score_set: { options: { team: ScoreTeamId; value: number } }
+	score_clock: { options: { mode: 'toggle' | 'start' | 'stop' | 'reset' } }
+	score_clock_set: { options: { time: string } }
+	score_period: { options: { dir: 'next' | 'prev' } }
+	score_bug: { options: { mode: OnOff; skin: string } }
+	score_board: { options: { mode: 'cue' | 'take' } }
+	score_undo: { options: Record<string, never> }
+	score_swap: { options: Record<string, never> }
+	score_final: { options: Record<string, never> }
+	score_shot: { options: { mode: 'reset' | 'start' | 'stop' } }
 }
+export type ScoreTeamId = 'home' | 'away'
 
 const ONOFF: DropdownChoice[] = [
 	{ id: 'toggle', label: 'Toggle' },
@@ -109,6 +121,18 @@ export function UpdateActions(self: LiveDeckInstance): void {
 	const channels: DropdownChoice[] = (self.state.audio ?? []).map((a) => ({ id: a.id, label: a.name }))
 	const firstLayout = String(layouts[0]?.id ?? '')
 	const firstChannel = String(channels[0]?.id ?? '')
+	const scoreCall = async (path: string): Promise<void> => self.scoreCall(path)
+	const skinChoices: DropdownChoice[] = self.scoreSkins.map((k) => ({ id: k.id, label: k.name || k.style || k.id }))
+	const teamOpt = {
+		type: 'dropdown' as const,
+		id: 'team' as const,
+		label: 'Team',
+		choices: [
+			{ id: 'home', label: 'Home' },
+			{ id: 'away', label: 'Away' },
+		],
+		default: 'home',
+	}
 	const want = (mode: OnOff, current: boolean | undefined): boolean => (mode === 'toggle' ? !current : mode === 'on')
 	const modeOpt = { type: 'dropdown' as const, id: 'mode' as const, label: 'Mode', choices: ONOFF, default: 'toggle' }
 	const targetOpt = {
@@ -424,6 +448,117 @@ export function UpdateActions(self: LiveDeckInstance): void {
 			name: 'Monitor audio (the device speaker)',
 			options: [modeOpt],
 			callback: async (a) => send({ action: 'monitorMute', value: want(a.options.mode, s().monMuted) }),
+		},
+		score_add: {
+			name: 'Score: add points',
+			description: "Add to a team's score. A negative number takes points off (for example -1 to correct a mistake).",
+			options: [teamOpt, { type: 'number', id: 'value', label: 'Points', default: 1, min: -99, max: 99 }],
+			callback: async (a) => scoreCall(`${a.options.team}/add?v=${encodeURIComponent(String(a.options.value))}`),
+		},
+		score_set: {
+			name: "Score: set a team's score",
+			options: [teamOpt, { type: 'number', id: 'value', label: 'Score', default: 0, min: 0, max: 999 }],
+			callback: async (a) => scoreCall(`${a.options.team}/set?value=${encodeURIComponent(String(a.options.value))}`),
+		},
+		score_clock: {
+			name: 'Score: game clock',
+			description: 'Start, stop or toggle the clock, or reset it to the period length (0:00 on a count-up clock).',
+			options: [
+				{
+					type: 'dropdown',
+					id: 'mode',
+					label: 'Clock',
+					choices: [
+						{ id: 'toggle', label: 'Start / stop (toggle)' },
+						{ id: 'start', label: 'Start' },
+						{ id: 'stop', label: 'Stop' },
+						{ id: 'reset', label: 'Reset to the period length' },
+					],
+					default: 'toggle',
+				},
+			],
+			callback: async (a) => {
+				if (a.options.mode !== 'reset') return scoreCall(`clock/${a.options.mode}`)
+				const c = self.score.game?.clock
+				await scoreCall(`clock/set?ms=${c?.dir === 'up' ? 0 : (c?.lenMs ?? 0)}`)
+			},
+		},
+		score_clock_set: {
+			name: 'Score: set the game clock',
+			options: [{ type: 'textinput', id: 'time', label: 'Time (m:ss)', default: '10:00', useVariables: true }],
+			callback: async (a) =>
+				scoreCall(`clock/set?t=${encodeURIComponent(String(a.options.time).trim()).replace(/%3A/gi, ':')}`),
+		},
+		score_period: {
+			name: 'Score: period',
+			options: [
+				{
+					type: 'dropdown',
+					id: 'dir',
+					label: 'Move',
+					choices: [
+						{ id: 'next', label: 'Next period' },
+						{ id: 'prev', label: 'Previous period' },
+					],
+					default: 'next',
+				},
+			],
+			callback: async (a) => scoreCall(`period/${a.options.dir}`),
+		},
+		score_bug: {
+			name: 'Score: bug on air',
+			description: 'Show, hide or toggle the score bug: every score bug, or the one chosen.',
+			options: [
+				modeOpt,
+				{
+					type: 'dropdown',
+					id: 'skin',
+					label: 'Bug',
+					choices: [{ id: '', label: 'All score bugs' }, ...skinChoices],
+					default: '',
+				},
+			],
+			callback: async (a) => {
+				const skin = a.options.skin ? `${encodeURIComponent(a.options.skin)}/` : ''
+				await scoreCall(`bug/${skin}${a.options.mode === 'on' ? 'show' : a.options.mode === 'off' ? 'hide' : 'toggle'}`)
+			},
+		},
+		score_board: {
+			name: 'Score: scoreboard layout',
+			description: 'Cue the scoreboard layout to preview, or take it to Program.',
+			options: [
+				{
+					type: 'dropdown',
+					id: 'mode',
+					label: 'Scoreboard',
+					choices: [
+						{ id: 'cue', label: 'Cue' },
+						{ id: 'take', label: 'Take to Program' },
+					],
+					default: 'take',
+				},
+			],
+			callback: async (a) => scoreCall(`board/${a.options.mode}`),
+		},
+		score_undo: { name: 'Score: undo', options: [], callback: async () => scoreCall('undo') },
+		score_swap: { name: 'Score: swap sides', options: [], callback: async () => scoreCall('swap') },
+		score_final: { name: 'Score: final (end the game)', options: [], callback: async () => scoreCall('final') },
+		score_shot: {
+			name: 'Score: shot clock',
+			options: [
+				{
+					type: 'dropdown',
+					id: 'mode',
+					label: 'Shot clock',
+					choices: [
+						{ id: 'reset', label: 'Reset' },
+						{ id: 'start', label: 'Start' },
+						{ id: 'stop', label: 'Stop' },
+					],
+					default: 'reset',
+				},
+			],
+			callback: async (a) => scoreCall(`shot/${a.options.mode}`),
 		},
 		raw_command: {
 			name: 'Raw command (advanced)',

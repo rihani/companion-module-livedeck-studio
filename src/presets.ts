@@ -305,6 +305,108 @@ export function UpdatePresets(self: LiveDeckInstance): void {
 		}),
 	]
 
+	// ---- Score ----
+	const scoreBtn = (
+		id: string,
+		name: string,
+		text: string,
+		actionId: string,
+		options: Record<string, unknown>,
+		feedbacks: Preset['feedbacks'] = [],
+		size: '14' | '18' | '24' = '14',
+	): string =>
+		add(id, {
+			type: 'simple',
+			name,
+			keywords: ['score', 'scoreboard'],
+			style: { text, size, color: WHITE, bgcolor: DARK },
+			steps: press([{ actionId, options } as never]),
+			feedbacks,
+		})
+	const teams = [
+		['home', 'Home'],
+		['away', 'Away'],
+	] as const
+	const scoreTeamKeys = Object.fromEntries(
+		teams.map(([team, label]) => [
+			team,
+			[
+				scoreBtn(
+					`score_${team}_show`,
+					`${label} score`,
+					`${V(`${team}_short`)}\n${V(`score_${team}`)}`,
+					'score_add',
+					{ team, value: 1 },
+					[{ feedbackId: 'score_leading', options: { team }, style: { bgcolor: GREEN, color: BLACK } }],
+					'18',
+				),
+				...[1, 2, 3].map((n) =>
+					scoreBtn(`score_${team}_p${n}`, `${label} +${n}`, `${label.toUpperCase()}\n+${n}`, 'score_add', {
+						team,
+						value: n,
+					}),
+				),
+				scoreBtn(`score_${team}_m1`, `${label} -1`, `${label.toUpperCase()}\n-1`, 'score_add', { team, value: -1 }),
+			],
+		]),
+	)
+	const scoreClock = [
+		scoreBtn(
+			'score_clock_toggle',
+			'Clock start / stop',
+			V('clock'),
+			'score_clock',
+			{ mode: 'toggle' },
+			[{ feedbackId: 'score_clock_running', options: {}, style: { bgcolor: GREEN, color: BLACK } }],
+			'24',
+		),
+		scoreBtn('score_clock_reset', 'Clock reset to period length', 'CLOCK\nRESET', 'score_clock', { mode: 'reset' }),
+		scoreBtn('score_period_next', 'Next period', `PERIOD\n${V('period_label')} >`, 'score_period', { dir: 'next' }, [
+			{ feedbackId: 'score_in_break', options: {}, style: { bgcolor: AMBER, color: BLACK } },
+		]),
+		scoreBtn('score_period_prev', 'Previous period', '< PERIOD', 'score_period', { dir: 'prev' }),
+		scoreBtn('score_shot_reset', 'Shot clock reset', `SHOT\n${V('shot')}`, 'score_shot', { mode: 'reset' }),
+	]
+	const scoreOnAir = [
+		scoreBtn(
+			'score_bug_toggle',
+			'Score bug on / off',
+			'SCORE\nBUG',
+			'score_bug',
+			{ mode: 'toggle', skin: '' },
+			[{ feedbackId: 'score_bug_on', options: { skin: '' }, style: { bgcolor: RED, color: WHITE } }],
+			'18',
+		),
+		scoreBtn('score_board_cue', 'Cue the scoreboard', 'BOARD\nCUE', 'score_board', { mode: 'cue' }),
+		scoreBtn(
+			'score_board_take',
+			'Take the scoreboard',
+			'BOARD\nTAKE',
+			'score_board',
+			{ mode: 'take' },
+			[{ feedbackId: 'score_board_on', options: {}, style: { bgcolor: RED, color: WHITE } }],
+			'18',
+		),
+	]
+	const scoreBugs = self.scoreSkins.map((k) => {
+		const label = k.name || k.style || k.id
+		return add(`score_bug_${k.id}`, {
+			type: 'simple',
+			name: `Bug: ${label}`,
+			keywords: ['score', 'bug', label],
+			style: { text: `BUG\n${label}`, size: '14', color: WHITE, bgcolor: DARK },
+			steps: press([{ actionId: 'score_bug', options: { mode: 'toggle', skin: k.id } }]),
+			feedbacks: [{ feedbackId: 'score_bug_on', options: { skin: k.id }, style: { bgcolor: RED, color: WHITE } }],
+		})
+	})
+	const scoreGame = [
+		scoreBtn('score_undo', 'Undo', `UNDO\n${V('undo_label')}`, 'score_undo', {}),
+		scoreBtn('score_swap', 'Swap sides', 'SWAP\nSIDES', 'score_swap', {}),
+		scoreBtn('score_final', 'Final', 'FINAL', 'score_final', {}, [
+			{ feedbackId: 'score_final', options: {}, style: { bgcolor: AMBER, color: BLACK } },
+		]),
+	]
+
 	const structure: CompanionPresetSection<ModuleSchema>[] = [
 		{
 			id: 'golive',
@@ -375,6 +477,36 @@ export function UpdatePresets(self: LiveDeckInstance): void {
 			id: 'satellites',
 			name: 'Talkback',
 			definitions: [{ id: 'sat', type: 'simple', name: 'Talkback', presets: talk }],
+		},
+		{
+			id: 'score',
+			name: 'Score',
+			definitions: [
+				{
+					id: 'score_home',
+					type: 'simple',
+					name: 'Home team',
+					description: 'The first button shows the score and goes green while the team leads.',
+					presets: scoreTeamKeys.home,
+				},
+				{ id: 'score_away', type: 'simple', name: 'Away team', presets: scoreTeamKeys.away },
+				{
+					id: 'score_clock',
+					type: 'simple',
+					name: 'Clock and period',
+					description: 'The clock button shows the time (ticks here, no network chatter) and is green while it runs.',
+					presets: scoreClock,
+				},
+				{ id: 'score_air', type: 'simple', name: 'Bug and scoreboard', presets: scoreOnAir },
+				{
+					id: 'score_bugs',
+					type: 'simple',
+					name: 'One bug each',
+					description: 'One button per score bug in the Studio (red while on air). Connect to the Studio to see them.',
+					presets: scoreBugs,
+				},
+				{ id: 'score_game', type: 'simple', name: 'Game', presets: scoreGame },
+			],
 		},
 		{
 			id: 'status',

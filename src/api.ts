@@ -4,6 +4,7 @@
  * `/api/state` when the stream is not available.
  */
 import http from 'node:http'
+import type { ScoreBoard, ScoreSkin, ScoreState } from './score.js'
 
 export interface LayoutInfo {
 	id: string
@@ -70,6 +71,12 @@ export interface CompactState {
 	talkTarget?: string
 	programPtz?: boolean
 	programPtzCams?: { slot: number; name: string; target: string }[]
+	/** Scoreboard: the full state carries `score`; the event stream sends the same object as `sc`. */
+	score?: ScoreState
+	sc?: ScoreState
+	scoreSkins?: ScoreSkin[]
+	scoreBoards?: ScoreBoard[]
+	serverNow?: number
 }
 
 /** GO LIVE state; a Studio that does not report it yet counts as live while any output runs. */

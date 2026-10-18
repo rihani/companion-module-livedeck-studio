@@ -30,26 +30,33 @@ More about LiveDeck: [manarlabs.com/apps/livedeck](https://manarlabs.com/apps/li
 - **Run a Show:** Start (optionally recording and streaming), Next step, Go to step, End.
 - **Talkback and satellites:** Talkback on / off (hold to talk), Who hears talkback (the satellite on air, all satellites, or one satellite), Message the satellites.
 - **Program:** Program resolution (480p / 720p / 1080p), Program orientation (landscape / portrait), Auto switch-away when the on-air source drops, and its fallback layout.
+- **Score** (needs a Studio with the Scoreboard): Add points (a negative number takes points off), Set a team's score, Game clock (start / stop / toggle / reset to the period length), Set the game clock (`m:ss`), Period next / previous, Bug on air (show / hide / toggle, for every score bug or one chosen bug), Scoreboard layout (cue / take), Undo, Swap sides, Final, Shot clock (reset / start / stop).
 - **Raw command (advanced):** any command from the Studio's API docs page (`http://<studio>:<port>/api`), as JSON.
 
 ### Feedbacks
 
-Layout is on air · Layout is cued · Layout has a source that stopped sending · GO LIVE: on air · GO LIVE: output is ticked · Recording · Recording with no audio · Streaming · Stream connecting · NDI output on · HLS pull server on · Channel muted · Channel soloed · Audio follows Program · Program health: warning or worse · Program health: bad · Auto switch-away is on.
+Layout is on air · Layout is cued · Layout has a source that stopped sending · GO LIVE: on air · GO LIVE: output is ticked · Recording · Recording with no audio · Streaming · Stream connecting · NDI output on · HLS pull server on · Channel muted · Channel soloed · Audio follows Program · Program health: warning or worse · Program health: bad · Auto switch-away is on · Score: game clock is running · bug is on air (any, or one bug) · scoreboard is on air · game is final · between periods · period is N · team is leading.
 
 ### Variables
 
-| Variable                                           | Meaning                                           |
-| -------------------------------------------------- | ------------------------------------------------- |
-| `live_layout`, `cued_layout`                       | Names of the on-air and cued layouts              |
-| `live`                                             | GO LIVE on air (Yes / No)                         |
-| `recording`, `streaming`, `ndi_out`                | Output state (Yes / No)                           |
-| `transition`                                       | Default transition                                |
-| `cpu`, `output_fps`                                | Studio CPU % and Program output frame rate        |
-| `health`, `health_text`, `offline_count`           | Worst health level, health chips, offline layouts |
-| `show`, `rundown_step`                             | Current show and rundown step (1-based)           |
-| `master_gain`, `quality`, `orientation`            | Master gain, Program resolution and orientation   |
-| `failover`, `failover_target`                      | Auto switch-away and its fallback layout          |
-| `layout_count`, `layout_1_name` … `layout_16_name` | Number of layouts and each layout's name          |
+| Variable                                             | Meaning                                                                                  |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| `live_layout`, `cued_layout`                         | Names of the on-air and cued layouts                                                     |
+| `live`                                               | GO LIVE on air (Yes / No)                                                                |
+| `recording`, `streaming`, `ndi_out`                  | Output state (Yes / No)                                                                  |
+| `transition`                                         | Default transition                                                                       |
+| `cpu`, `output_fps`                                  | Studio CPU % and Program output frame rate                                               |
+| `health`, `health_text`, `offline_count`             | Worst health level, health chips, offline layouts                                        |
+| `show`, `rundown_step`                               | Current show and rundown step (1-based)                                                  |
+| `master_gain`, `quality`, `orientation`              | Master gain, Program resolution and orientation                                          |
+| `failover`, `failover_target`                        | Auto switch-away and its fallback layout                                                 |
+| `score_home`, `score_away`                           | Scores                                                                                   |
+| `home_name`, `away_name`, `home_short`, `away_short` | Team names and short names                                                               |
+| `clock`, `clock_running`, `shot`                     | Game clock (`7:42`, ticks on its own), running (Yes / No), shot clock                    |
+| `period`, `period_label`, `status`                   | Period number, label (`Q2`, `1H`, `SET 3`), status (`HALF TIME`, `FINAL`; blank in play) |
+| `sport`, `game_title`, `undo_label`                  | Sport, game title, what Undo would take back                                             |
+| `bug_on`, `board_on`                                 | Score bug / scoreboard on air (Yes / No)                                                 |
+| `layout_count`, `layout_1_name` … `layout_16_name`   | Number of layouts and each layout's name                                                 |
 
 ### Presets
 
@@ -60,6 +67,7 @@ Layout is on air · Layout is cued · Layout has a source that stopped sending �
 - **PTZ:** Presets 1–8 on the on-air camera (tap to recall, hold 2 s to store), pan / tilt arrows and zoom (move while held, stop on release).
 - **Run a Show:** Start, Next (shows the step number), End.
 - **Talkback:** Talk (hold), Talk to the satellite on air, Talk to all satellites.
+- **Score:** each team's score button (green while it leads) with +1 / +2 / +3 / -1, the game clock (shows the time, green while running) with reset, next / previous period and shot clock reset, score bug on / off, scoreboard cue / take, one button per score bug, Undo, Swap sides and Final. Look for the **Score** section in the preset list.
 - **Status:** On air (layout name), Health (CPU and health level), Auto switch-away.
 
 ### Troubleshooting
