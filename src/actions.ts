@@ -43,6 +43,7 @@ export type ActionsSchema = {
 	monitor_mute: { options: { mode: OnOff } }
 	raw_command: { options: { json: string } }
 	fund_add: { options: { amount: number; name: string } }
+	fund_remove: { options: { amount: number; name: string } }
 	fund_quick: { options: { preset: string } }
 	fund_undo: { options: Record<string, never> }
 	fund_set: { options: { raised: string; donors: string } }
@@ -584,6 +585,19 @@ export function UpdateActions(self: LiveDeckInstance): void {
 			callback: async (a) => {
 				const name = String(String(a.options.name ?? '')).trim()
 				await fundCall('add', { amount: Number(a.options.amount), ...(name ? { name } : {}) })
+			},
+		},
+		fund_remove: {
+			name: 'Fundraiser: remove an amount',
+			description:
+				'Take money off the total (a correction). Whole currency units; never goes below 0, never celebrates, and Undo brings it back. The note is optional.',
+			options: [
+				{ type: 'number', id: 'amount', label: 'Amount', default: 10, min: 0.01, max: 100000000 },
+				{ type: 'textinput', id: 'name', label: 'Note (optional)', default: '', useVariables: true },
+			],
+			callback: async (a) => {
+				const name = String(String(a.options.name ?? '')).trim()
+				await fundCall('remove', { amount: Number(a.options.amount), ...(name ? { name } : {}) })
 			},
 		},
 		fund_quick: {
