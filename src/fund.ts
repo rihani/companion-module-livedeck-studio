@@ -37,6 +37,8 @@ export interface FundState {
 	undoLabel?: string
 	undoDepth?: number
 	bugOn?: boolean
+	/** A bug is on Program (or fixed) but hidden because the Fundraiser layout is live. */
+	bugSuppressed?: boolean
 	layoutOn?: boolean
 }
 export interface FundSkin {
@@ -45,9 +47,11 @@ export interface FundSkin {
 	layoutId?: string
 	/** idle | in | held | out — `in` and `held` mean on air. */
 	phase?: string
+	/** Hidden by the live Fundraiser layout (owner rule 2026-10-19). */
+	suppressed?: boolean
 }
 
-export const fundSkinOnAir = (k: FundSkin | undefined): boolean => k?.phase === 'in' || k?.phase === 'held'
+export const fundSkinOnAir = (k: FundSkin | undefined): boolean => (k?.phase === 'in' || k?.phase === 'held') && !k?.suppressed
 
 /** Style ids with their letters, and the theme ids of each (the shared table `fund_styles.json`). */
 export const FUND_STYLES: { id: string; letter: string; name: string; themes: string[] }[] = [

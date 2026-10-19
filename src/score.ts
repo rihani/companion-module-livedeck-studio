@@ -34,7 +34,10 @@ export interface ScoreState {
 	game?: ScoreGame
 	serverNow?: number
 	undoLabel?: string
+	/** A bug is VISIBLE on Program. */
 	bugOn?: boolean
+	/** A bug is on Program (or fixed) but hidden because a Scoreboard board is live. */
+	bugSuppressed?: boolean
 	boardOn?: boolean
 }
 export interface ScoreSkin {
@@ -43,6 +46,8 @@ export interface ScoreSkin {
 	style?: string
 	/** idle | in | held | out — `in` and `held` mean on air. */
 	phase?: string
+	/** Hidden by the live Scoreboard board (owner rule 2026-10-19). */
+	suppressed?: boolean
 	layoutId?: string
 }
 export interface ScoreBoard {
@@ -53,7 +58,8 @@ export interface ScoreBoard {
 	cued?: boolean
 }
 
-export const skinOnAir = (k: ScoreSkin | undefined): boolean => k?.phase === 'in' || k?.phase === 'held'
+/** On air = playing AND not hidden by its own board layout (`suppressed`). */
+export const skinOnAir = (k: ScoreSkin | undefined): boolean => (k?.phase === 'in' || k?.phase === 'held') && !k?.suppressed
 
 const pad2 = (n: number): string => String(n).padStart(2, '0')
 const mmss = (totalSec: number): string => `${Math.floor(totalSec / 60)}:${pad2(totalSec % 60)}`
