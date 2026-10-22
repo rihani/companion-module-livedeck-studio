@@ -71,6 +71,7 @@ export interface CompactState {
 		ndi?: boolean
 		rtmp?: boolean
 		facebook?: boolean
+		youtube?: boolean
 		record?: boolean
 		hls?: boolean
 		rtmpServer?: boolean
