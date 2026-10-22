@@ -67,7 +67,14 @@ export interface CompactState {
 	/** GO LIVE (iOS 2026-09-30+; Android adds it to the event stream later — see liveNow()). */
 	isLive?: boolean
 	liveSince?: string | number | null
-	liveSelection?: { ndi?: boolean; rtmp?: boolean; record?: boolean; hls?: boolean; rtmpServer?: boolean }
+	liveSelection?: {
+		ndi?: boolean
+		rtmp?: boolean
+		facebook?: boolean
+		record?: boolean
+		hls?: boolean
+		rtmpServer?: boolean
+	}
 	talkback?: boolean
 	talkTarget?: string
 	programPtz?: boolean

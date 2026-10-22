@@ -4,7 +4,7 @@ import { FUND_STYLES, fundStyleId, fundThemeFor, parseMajor } from './fund.js'
 import type LiveDeckInstance from './main.js'
 
 type OnOff = 'toggle' | 'on' | 'off'
-export type GoLiveOutput = 'ndi' | 'rtmp' | 'record' | 'hls' | 'rtmpServer'
+export type GoLiveOutput = 'ndi' | 'rtmp' | 'facebook' | 'record' | 'hls' | 'rtmpServer'
 export type PtzDirection = 'up' | 'down' | 'left' | 'right' | 'upleft' | 'upright' | 'downleft' | 'downright' | 'stop'
 export type ZoomDirection = 'in' | 'out' | 'stop'
 
@@ -77,6 +77,7 @@ const ONOFF: DropdownChoice[] = [
 export const GO_LIVE_OUTPUTS: DropdownChoice[] = [
 	{ id: 'ndi', label: 'NDI output' },
 	{ id: 'rtmp', label: 'Stream (RTMP)' },
+	{ id: 'facebook', label: 'Facebook Live (one-tap; the login happens on the device)' },
 	{ id: 'record', label: 'Record' },
 	{ id: 'hls', label: 'HLS pull server' },
 	{ id: 'rtmpServer', label: 'RTMP server' },
