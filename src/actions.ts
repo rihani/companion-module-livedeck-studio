@@ -64,6 +64,27 @@ export type ActionsSchema = {
 	score_swap: { options: Record<string, never> }
 	score_final: { options: Record<string, never> }
 	score_shot: { options: { mode: 'reset' | 'start' | 'stop' } }
+	score_view: { options: { mode: 'bug' | 'board' | 'off' } }
+	score_setup: {
+		options: {
+			sport: string
+			title: string
+			home: string
+			homeShort: string
+			homeColor: string
+			away: string
+			awayShort: string
+			awayColor: string
+			periods: number
+			minutes: number
+		}
+	}
+	fund_view: { options: { mode: 'bar' | 'full' | 'off' } }
+	fund_setup: { options: { title: string; desc: string; cur: string; target: string; min: string; stretch: string } }
+	wb_add: { options: { kind: 'white' | 'grid' | 'chalk' | 'drawing' } }
+	wb_do: { options: { board: string; op: 'clear' | 'undo' | 'redo' | 'show' | 'hide' } }
+	wb_stroke: { options: { board: string; points: string; tool: string; color: string; size: 'S' | 'M' | 'L' } }
+	wb_page: { options: { board: string; page: string } }
 }
 export type FundTarget = 'bug' | 'layout' | 'both'
 export type ScoreTeamId = 'home' | 'away'
@@ -138,6 +159,21 @@ export function UpdateActions(self: LiveDeckInstance): void {
 	const fundCall = async (op: string, params?: Record<string, unknown>): Promise<void> => self.fundCall(op, params)
 	const scoreCall = async (path: string): Promise<void> => self.scoreCall(path)
 	const skinChoices: DropdownChoice[] = self.scoreSkins.map((k) => ({ id: k.id, label: k.name || k.style || k.id }))
+	const boardOpt = {
+		type: 'textinput' as const,
+		id: 'board' as const,
+		label: 'Board id (blank = the first whiteboard or drawing)',
+		default: '',
+		useVariables: true,
+	}
+	/** The board to act on: the id typed, else the first one the Studio lists (GET /api/whiteboard). */
+	const boardId = async (typed: string): Promise<string | undefined> => {
+		if (typed.trim()) return typed.trim()
+		const r = await self.apiCall('GET', '/api/whiteboard')
+		const boards = (r?.boards ?? []) as { id: string }[]
+		if (!boards.length) self.log('warn', 'No whiteboard yet: add one first (Whiteboard: add a board)')
+		return boards[0]?.id
+	}
 	const teamOpt = {
 		type: 'dropdown' as const,
 		id: 'team' as const,
@@ -493,9 +529,7 @@ export function UpdateActions(self: LiveDeckInstance): void {
 				},
 			],
 			callback: async (a) => {
-				if (a.options.mode !== 'reset') return scoreCall(`clock/${a.options.mode}`)
-				const c = self.score.game?.clock
-				await scoreCall(`clock/set?ms=${c?.dir === 'up' ? 0 : (c?.lenMs ?? 0)}`)
+				await scoreCall(`clock/${a.options.mode}`)
 			},
 		},
 		score_clock_set: {
@@ -728,6 +762,218 @@ export function UpdateActions(self: LiveDeckInstance): void {
 			},
 		},
 		fund_celebrate: { name: 'Fundraiser: celebrate', options: [], callback: async () => fundCall('celebrate') },
+		score_view: {
+			name: 'Score: bug, full board or neither',
+			description: 'One switch: the score bug over the show, the full-screen scoreboard, or neither.',
+			options: [
+				{
+					type: 'dropdown',
+					id: 'mode',
+					label: 'Show',
+					choices: [
+						{ id: 'bug', label: 'Score bug' },
+						{ id: 'board', label: 'Full board' },
+						{ id: 'off', label: 'Neither' },
+					],
+					default: 'bug',
+				},
+			],
+			callback: async (a) => scoreCall(`view/${a.options.mode}`),
+		},
+		score_setup: {
+			name: 'Score: set up the game',
+			description:
+				'Sport, title, team names, short names, colours, periods and minutes a period. Blank boxes keep what is there. A different sport starts a new game.',
+			options: [
+				{
+					type: 'dropdown',
+					id: 'sport',
+					label: 'Sport',
+					choices: [
+						{ id: '', label: 'Keep the sport' },
+						{ id: 'basketball', label: 'Basketball' },
+						{ id: 'soccer', label: 'Soccer' },
+						{ id: 'afl', label: 'AFL' },
+						{ id: 'netball', label: 'Netball' },
+						{ id: 'volleyball', label: 'Volleyball' },
+						{ id: 'generic', label: 'Other sport' },
+					],
+					default: '',
+				},
+				{ type: 'textinput', id: 'title', label: 'Title', default: '', useVariables: true },
+				{ type: 'textinput', id: 'home', label: 'Home team', default: '', useVariables: true },
+				{ type: 'textinput', id: 'homeShort', label: 'Home short name (blank = automatic)', default: '' },
+				{ type: 'textinput', id: 'homeColor', label: 'Home colour (#RRGGBB)', default: '' },
+				{ type: 'textinput', id: 'away', label: 'Away team', default: '', useVariables: true },
+				{ type: 'textinput', id: 'awayShort', label: 'Away short name (blank = automatic)', default: '' },
+				{ type: 'textinput', id: 'awayColor', label: 'Away colour (#RRGGBB)', default: '' },
+				{ type: 'number', id: 'periods', label: 'Periods (0 = keep)', default: 0, min: 0, max: 20 },
+				{ type: 'number', id: 'minutes', label: 'Minutes a period (0 = keep)', default: 0, min: 0, max: 120 },
+			],
+			callback: async (a) => {
+				const o = a.options
+				if (o.sport && o.sport !== self.score.game?.sport) await self.apiCall('POST', '/api/score', { sport: o.sport })
+				const body: Record<string, unknown> = {}
+				if (String(o.title ?? '').trim()) body.title = String(o.title).trim()
+				for (const side of ['home', 'away'] as const) {
+					const t: Record<string, string> = {}
+					const name = String((side === 'home' ? o.home : o.away) ?? '').trim()
+					const short = String((side === 'home' ? o.homeShort : o.awayShort) ?? '').trim()
+					const color = String((side === 'home' ? o.homeColor : o.awayColor) ?? '').trim()
+					if (name) t.name = name
+					if (short) t.short = short
+					if (color) t.color = color
+					if (Object.keys(t).length) body[side] = t
+				}
+				if (Number(o.periods) > 0) body.rules = { periods: Number(o.periods) }
+				if (Number(o.minutes) > 0) body.clock = { lenMs: Number(o.minutes) * 60000 }
+				if (Object.keys(body).length) await self.apiCall('POST', '/api/score', body)
+			},
+		},
+		fund_view: {
+			name: 'Fundraiser: bar, full screen or neither',
+			description: 'One switch: the fundraiser bar over the show, the full-screen appeal, or neither.',
+			options: [
+				{
+					type: 'dropdown',
+					id: 'mode',
+					label: 'Show',
+					choices: [
+						{ id: 'bar', label: 'Bar over the show' },
+						{ id: 'full', label: 'Full screen' },
+						{ id: 'off', label: 'Neither' },
+					],
+					default: 'bar',
+				},
+			],
+			callback: async (a) => fundCall('view', { to: a.options.mode }),
+		},
+		fund_setup: {
+			name: 'Fundraiser: set up the appeal',
+			description: 'Title, message, currency and the goals (whole currency units). Blank boxes keep what is there.',
+			options: [
+				{ type: 'textinput', id: 'title', label: 'Title', default: '', useVariables: true },
+				{ type: 'textinput', id: 'desc', label: 'Message (e.g. a thank-you line)', default: '', useVariables: true },
+				{ type: 'textinput', id: 'cur', label: 'Currency (3 letters, e.g. AUD)', default: '' },
+				{ type: 'textinput', id: 'target', label: 'Goal', default: '', useVariables: true },
+				{ type: 'textinput', id: 'min', label: 'First milestone', default: '', useVariables: true },
+				{ type: 'textinput', id: 'stretch', label: 'Stretch goal', default: '', useVariables: true },
+			],
+			callback: async (a) => {
+				const o = a.options
+				const p: Record<string, unknown> = {}
+				for (const k of ['title', 'desc', 'cur'] as const) if (String(o[k] ?? '').trim()) p[k] = String(o[k]).trim()
+				for (const k of ['target', 'min', 'stretch'] as const) {
+					const v = parseMajor(String(o[k] ?? ''))
+					if (v !== undefined) p[k] = v
+				}
+				if (Object.keys(p).length) await fundCall('patch', p)
+			},
+		},
+		wb_add: {
+			name: 'Whiteboard: add a board',
+			description: 'A full-screen whiteboard layout (white, grid paper, chalkboard) or a drawing over the show.',
+			options: [
+				{
+					type: 'dropdown',
+					id: 'kind',
+					label: 'Board',
+					choices: [
+						{ id: 'white', label: 'White board (layout)' },
+						{ id: 'grid', label: 'Grid paper (layout)' },
+						{ id: 'chalk', label: 'Chalkboard (layout)' },
+						{ id: 'drawing', label: 'Drawing over the show' },
+					],
+					default: 'white',
+				},
+			],
+			callback: async (a) => {
+				await self.apiCall('POST', '/api/whiteboard', { kind: a.options.kind })
+			},
+		},
+		wb_do: {
+			name: 'Whiteboard: clear, undo, redo, show or hide',
+			description:
+				'Show takes a whiteboard layout to Program (hide takes the one before it back); a drawing over the show plays or stops.',
+			options: [
+				boardOpt,
+				{
+					type: 'dropdown',
+					id: 'op',
+					label: 'Do',
+					choices: [
+						{ id: 'undo', label: 'Undo' },
+						{ id: 'redo', label: 'Redo' },
+						{ id: 'clear', label: 'Clear the page' },
+						{ id: 'show', label: 'Show / take' },
+						{ id: 'hide', label: 'Hide' },
+					],
+					default: 'undo',
+				},
+			],
+			callback: async (a) => {
+				const id = await boardId(String(a.options.board ?? ''))
+				if (id) await self.apiCall('POST', `/api/whiteboard/${encodeURIComponent(id)}/${a.options.op}`)
+			},
+		},
+		wb_stroke: {
+			name: 'Whiteboard: draw a stroke',
+			description:
+				'Points as JSON [[x,y],…] from 0 to 1 (top-left is 0,0). Line, arrow, box and circle use the first and last point.',
+			options: [
+				boardOpt,
+				{ type: 'textinput', id: 'points', label: 'Points', default: '[[0.2,0.5],[0.8,0.5]]', useVariables: true },
+				{
+					type: 'dropdown',
+					id: 'tool',
+					label: 'Tool',
+					choices: ['pen', 'highlighter', 'line', 'arrow', 'box', 'circle'].map((t) => ({ id: t, label: t })),
+					default: 'pen',
+				},
+				{
+					type: 'textinput',
+					id: 'color',
+					label: 'Pen colour (#RRGGBB, blank = the board default)',
+					default: '#E5484D',
+				},
+				{
+					type: 'dropdown',
+					id: 'size',
+					label: 'Pen size',
+					choices: [
+						{ id: 'S', label: 'Small' },
+						{ id: 'M', label: 'Medium' },
+						{ id: 'L', label: 'Large' },
+					],
+					default: 'M',
+				},
+			],
+			callback: async (a) => {
+				const id = await boardId(String(a.options.board ?? ''))
+				if (!id) return
+				let points: unknown
+				try {
+					points = JSON.parse(String(a.options.points ?? '[]'))
+				} catch {
+					self.log('warn', 'Whiteboard stroke: points must be JSON like [[0.2,0.5],[0.8,0.5]]')
+					return
+				}
+				const body: Record<string, unknown> = { points, tool: a.options.tool, size: a.options.size }
+				if (String(a.options.color ?? '').trim()) body.color = String(a.options.color).trim()
+				await self.apiCall('POST', `/api/whiteboard/${encodeURIComponent(id)}/stroke`, body)
+			},
+		},
+		wb_page: {
+			name: 'Whiteboard: page',
+			options: [boardOpt, { type: 'textinput', id: 'page', label: 'Page (1, 2, … or new)', default: 'new' }],
+			callback: async (a) => {
+				const id = await boardId(String(a.options.board ?? ''))
+				if (!id) return
+				const v = String(a.options.page ?? '').trim()
+				const n = v === 'new' ? 'new' : String(Math.max(0, (parseInt(v, 10) || 1) - 1))
+				await self.apiCall('POST', `/api/whiteboard/${encodeURIComponent(id)}/page/${n}`)
+			},
+		},
 		raw_command: {
 			name: 'Raw command (advanced)',
 			description: 'Any command from the Studio\'s /api docs page, as JSON, e.g. {"action":"cue","id":"…"}',

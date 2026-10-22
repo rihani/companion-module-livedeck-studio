@@ -98,6 +98,23 @@ export default class LiveDeckInstance extends InstanceBase<ModuleSchema> {
 		}
 	}
 
+	/** Any control-API call with a JSON body (setup forms, whiteboard). The reply is logged when it says ok:false. */
+	async apiCall(method: 'GET' | 'POST', path: string, body?: unknown): Promise<Record<string, unknown> | undefined> {
+		if (!this.api) {
+			this.log('warn', `Not connected to a Studio — "${path}" not sent`)
+			return undefined
+		}
+		try {
+			const r = (await this.api.request(method, path, body)) as Record<string, unknown>
+			if (r && r.ok === false) this.log('warn', `${path} failed: ${typeof r.error === 'string' ? r.error : 'refused'}`)
+			if (r && path.startsWith('/api/score') && r.game) this.applyScore(r)
+			return r
+		} catch (e) {
+			this.log('warn', `${path} failed: ${(e as Error).message}`)
+			return undefined
+		}
+	}
+
 	/**
 	 * One scoreboard call (POST /api/score/…). The reply is the whole new score state, so buttons and
 	 * variables follow at once instead of waiting for the next event. Failures are logged, not thrown.

@@ -38,6 +38,7 @@ export type FeedbacksSchema = {
 	score_period_is: { type: 'boolean'; options: { n: number } }
 	score_leading: { type: 'boolean'; options: { team: 'home' | 'away' } }
 	fund_on_air: { type: 'boolean'; options: Record<string, never> }
+	fund_full_on_air: { type: 'boolean'; options: Record<string, never> }
 	fund_min_reached: { type: 'boolean'; options: Record<string, never> }
 	fund_goal_reached: { type: 'boolean'; options: Record<string, never> }
 	fund_stretch_reached: { type: 'boolean'; options: Record<string, never> }
@@ -260,6 +261,13 @@ export function UpdateFeedbacks(self: LiveDeckInstance): void {
 			options: [],
 			defaultStyle: { bgcolor: RED, color: WHITE },
 			callback: () => !!self.fund.bugOn || !!self.fund.fund?.show?.on || self.fundSkins.some(fundSkinOnAir),
+		},
+		fund_full_on_air: {
+			type: 'boolean',
+			name: 'Fundraiser: full-screen appeal is on Program',
+			options: [],
+			defaultStyle: { bgcolor: RED, color: WHITE },
+			callback: () => !!self.fund.layoutOn,
 		},
 		fund_min_reached: {
 			type: 'boolean',
