@@ -9,6 +9,7 @@ export interface ScoreTeam {
 	short?: string
 	color?: string
 	score?: number
+	players?: { n: string; name?: string }[]
 }
 export interface ScoreClock {
 	dir?: 'down' | 'up' | 'none' | string
@@ -28,6 +29,7 @@ export interface ScoreGame {
 	clock?: ScoreClock
 	shot?: ScoreClock & { on?: boolean }
 	rules?: { periods?: number; half?: number; label?: string; cont?: boolean }
+	scorer?: { team?: string; n?: string; name?: string; t?: number }
 }
 /** `GET /api/score` and every score write reply (minus `ok`); the web state and SSE key `sc` carry the same object. */
 export interface ScoreState {
@@ -59,7 +61,8 @@ export interface ScoreBoard {
 }
 
 /** On air = playing AND not hidden by its own board layout (`suppressed`). */
-export const skinOnAir = (k: ScoreSkin | undefined): boolean => (k?.phase === 'in' || k?.phase === 'held') && !k?.suppressed
+export const skinOnAir = (k: ScoreSkin | undefined): boolean =>
+	(k?.phase === 'in' || k?.phase === 'held') && !k?.suppressed
 
 const pad2 = (n: number): string => String(n).padStart(2, '0')
 const mmss = (totalSec: number): string => `${Math.floor(totalSec / 60)}:${pad2(totalSec % 60)}`
@@ -141,6 +144,7 @@ export function scoreVariableValues(
 		away_name: g.away?.name ?? '',
 		home_short: g.home?.short ?? '',
 		away_short: g.away?.short ?? '',
+		last_scorer: g.scorer?.n ? `#${g.scorer.n}${g.scorer.name ? ' ' + g.scorer.name : ''}` : '',
 		clock: clockText(g, localNow, skew),
 		clock_running: cur && g.clock?.run ? 'Yes' : 'No',
 		shot: shotText(g, localNow, skew),

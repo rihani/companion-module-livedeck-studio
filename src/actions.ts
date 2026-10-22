@@ -65,6 +65,10 @@ export type ActionsSchema = {
 	score_final: { options: Record<string, never> }
 	score_shot: { options: { mode: 'reset' | 'start' | 'stop' } }
 	score_view: { options: { mode: 'bug' | 'board' | 'off' } }
+	score_scorer: { options: { team: 'home' | 'away'; n: string } }
+	score_player_add: { options: { team: 'home' | 'away'; n: string; name: string } }
+	score_player_remove: { options: { team: 'home' | 'away'; n: string } }
+	score_roster_set: { options: { team: 'home' | 'away'; list: string } }
 	score_setup: {
 		options: {
 			sport: string
@@ -780,6 +784,108 @@ export function UpdateActions(self: LiveDeckInstance): void {
 				},
 			],
 			callback: async (a) => scoreCall(`view/${a.options.mode}`),
+		},
+		score_scorer: {
+			name: 'Score: who scored',
+			description:
+				'Shows "#10 Silva" under the score bug for 6 seconds. The player must be on that team\'s roster. Leave the number blank to clear.',
+			options: [
+				{
+					type: 'dropdown',
+					id: 'team',
+					label: 'Team',
+					choices: [
+						{ id: 'home', label: 'Home' },
+						{ id: 'away', label: 'Away' },
+					],
+					default: 'home',
+				},
+				{ type: 'textinput', id: 'n', label: 'Shirt number', default: '10', useVariables: true },
+			],
+			callback: async (a) => {
+				const n = String(a.options.n ?? '').trim()
+				await self.apiCall(
+					'POST',
+					'/api/score/scorer',
+					n ? { team: a.options.team, n } : { team: a.options.team, n: '' },
+				)
+			},
+		},
+		score_player_add: {
+			name: 'Score: add a player',
+			description: 'Adds a player (number + name) to a team roster. An existing number gets the new name.',
+			options: [
+				{
+					type: 'dropdown',
+					id: 'team',
+					label: 'Team',
+					choices: [
+						{ id: 'home', label: 'Home' },
+						{ id: 'away', label: 'Away' },
+					],
+					default: 'home',
+				},
+				{ type: 'textinput', id: 'n', label: 'Shirt number (1-3 letters or digits)', default: '10' },
+				{ type: 'textinput', id: 'name', label: 'Name', default: '' },
+			],
+			callback: async (a) => {
+				await self.apiCall('POST', '/api/score/players/add', {
+					team: a.options.team,
+					n: String(a.options.n ?? '').trim(),
+					name: String(a.options.name ?? '').trim(),
+				})
+			},
+		},
+		score_player_remove: {
+			name: 'Score: remove a player',
+			options: [
+				{
+					type: 'dropdown',
+					id: 'team',
+					label: 'Team',
+					choices: [
+						{ id: 'home', label: 'Home' },
+						{ id: 'away', label: 'Away' },
+					],
+					default: 'home',
+				},
+				{ type: 'textinput', id: 'n', label: 'Shirt number', default: '10' },
+			],
+			callback: async (a) => {
+				await self.apiCall('POST', '/api/score/players/remove', {
+					team: a.options.team,
+					n: String(a.options.n ?? '').trim(),
+				})
+			},
+		},
+		score_roster_set: {
+			name: 'Score: set a team roster',
+			description: 'Replaces the whole roster. One player per line or separated by ";": 10 Silva; 9 Costa; 7 Lima',
+			options: [
+				{
+					type: 'dropdown',
+					id: 'team',
+					label: 'Team',
+					choices: [
+						{ id: 'home', label: 'Home' },
+						{ id: 'away', label: 'Away' },
+					],
+					default: 'home',
+				},
+				{ type: 'textinput', id: 'list', label: 'Players', default: '10 Silva; 9 Costa' },
+			],
+			callback: async (a) => {
+				const players = String(a.options.list ?? '')
+					.split(/[;\n]/)
+					.map((l) => l.trim().replace(/^#/, ''))
+					.filter((l) => l)
+					.map((l) => {
+						const m = l.match(/^([0-9A-Za-z]{1,3})[\s,.:-]*(.*)$/)
+						return m ? { n: m[1], name: m[2].trim() } : null
+					})
+					.filter((x) => x)
+				await self.apiCall('POST', '/api/score/players', { team: a.options.team, players })
+			},
 		},
 		score_setup: {
 			name: 'Score: set up the game',

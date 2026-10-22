@@ -29,6 +29,7 @@ export type VariablesSchema = {
 	layout_count: number
 	score_home: number
 	score_away: number
+	last_scorer: string
 	home_name: string
 	away_name: string
 	home_short: string
@@ -79,6 +80,7 @@ export function UpdateVariableDefinitions(self: LiveDeckInstance): void {
 	Object.assign(defs, {
 		score_home: { name: 'Score: home' },
 		score_away: { name: 'Score: away' },
+		last_scorer: { name: 'Score: last scorer (#10 Silva)' },
 		home_name: { name: 'Score: home team name' },
 		away_name: { name: 'Score: away team name' },
 		home_short: { name: 'Score: home short name' },

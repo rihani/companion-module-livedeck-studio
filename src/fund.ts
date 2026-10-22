@@ -51,7 +51,8 @@ export interface FundSkin {
 	suppressed?: boolean
 }
 
-export const fundSkinOnAir = (k: FundSkin | undefined): boolean => (k?.phase === 'in' || k?.phase === 'held') && !k?.suppressed
+export const fundSkinOnAir = (k: FundSkin | undefined): boolean =>
+	(k?.phase === 'in' || k?.phase === 'held') && !k?.suppressed
 
 /** Style ids with their letters, and the theme ids of each (the shared table `fund_styles.json`). */
 export const FUND_STYLES: { id: string; letter: string; name: string; themes: string[] }[] = [
