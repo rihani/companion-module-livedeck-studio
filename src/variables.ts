@@ -52,6 +52,14 @@ export type VariablesSchema = {
 	fund_donors: number
 	fund_latest: string
 	fund_undo_label: string
+	fb_state: string
+	fb_status: string
+	fb_signed_in: string
+	fb_account: string
+	fb_login_state: string
+	fb_code: string
+	fb_target: string
+	fb_privacy: string
 } & LayoutNameVars
 
 export function UpdateVariableDefinitions(self: LiveDeckInstance): void {
@@ -105,6 +113,14 @@ export function UpdateVariableDefinitions(self: LiveDeckInstance): void {
 		fund_donors: { name: 'Fundraiser: number of donors' },
 		fund_latest: { name: 'Fundraiser: latest donation (Fatima A. $100)' },
 		fund_undo_label: { name: 'Fundraiser: what Undo would take back' },
+		fb_state: { name: 'Facebook Live: idle / connecting / live / failed' },
+		fb_status: { name: 'Facebook Live: status line' },
+		fb_signed_in: { name: 'Facebook: signed in (Yes/No)' },
+		fb_account: { name: 'Facebook: account name' },
+		fb_login_state: { name: 'Facebook login: signedOut / waiting / signedIn / failed' },
+		fb_code: { name: 'Facebook login: code to enter at facebook.com/device (Apple TV, while waiting)' },
+		fb_target: { name: 'Facebook: where it goes live (timeline or Page name)' },
+		fb_privacy: { name: 'Facebook: who can see a timeline live (public / friends / only_me)' },
 	})
 	for (let i = 1; i <= LAYOUT_SLOTS; i++) defs[`layout_${i}_name`] = { name: `Layout ${i} name` }
 	self.setVariableDefinitions(defs as never)
@@ -142,5 +158,16 @@ export function variableValues(s: CompactState): Partial<VariablesSchema> {
 	const fps = s.outputFps ?? s.stats?.outputFps
 	if (fps !== undefined && Number.isFinite(Number(fps))) v.output_fps = Math.round(Number(fps))
 	for (let i = 1; i <= LAYOUT_SLOTS; i++) v[`layout_${i}_name`] = s.layouts?.[i - 1]?.name ?? ''
+	const fb = s.facebook
+	if (fb) {
+		v.fb_state = fb.state ?? ''
+		v.fb_status = fb.status ?? ''
+		v.fb_signed_in = fb.signedIn ? 'Yes' : 'No'
+		v.fb_account = fb.account ?? ''
+		v.fb_login_state = fb.login?.state ?? ''
+		v.fb_code = fb.login?.state === 'waiting' ? (fb.login.userCode ?? '') : ''
+		v.fb_target = fb.target?.name ?? ''
+		v.fb_privacy = fb.privacy ?? ''
+	}
 	return v as Partial<VariablesSchema>
 }

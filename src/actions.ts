@@ -42,6 +42,12 @@ export type ActionsSchema = {
 	failover_target: { options: { layout: string } }
 	monitor_mute: { options: { mode: OnOff } }
 	raw_command: { options: { json: string } }
+	fb_login: { options: { force: boolean } }
+	fb_login_cancel: { options: Record<string, never> }
+	fb_target: { options: { target: string } }
+	fb_privacy: { options: { value: 'public' | 'friends' | 'only_me' } }
+	fb_details: { options: { title: string; description: string } }
+	fb_signout: { options: Record<string, never> }
 	fund_add: { options: { amount: number; name: string } }
 	fund_remove: { options: { amount: number; name: string } }
 	fund_quick: { options: { preset: string } }
@@ -102,7 +108,7 @@ const ONOFF: DropdownChoice[] = [
 export const GO_LIVE_OUTPUTS: DropdownChoice[] = [
 	{ id: 'ndi', label: 'NDI output' },
 	{ id: 'rtmp', label: 'Stream (RTMP)' },
-	{ id: 'facebook', label: 'Facebook Live (one-tap; the login happens on the device)' },
+	{ id: 'facebook', label: 'Facebook Live (one-tap; phone: login on the device, Apple TV: code on the TV)' },
 	{ id: 'youtube', label: 'YouTube Live (one-tap; the Google sign-in happens on the device)' },
 	{ id: 'record', label: 'Record' },
 	{ id: 'hls', label: 'HLS pull server' },
@@ -1079,6 +1085,72 @@ export function UpdateActions(self: LiveDeckInstance): void {
 				const v = String(a.options.page ?? '').trim()
 				const n = v === 'new' ? 'new' : String(Math.max(0, (parseInt(v, 10) || 1) - 1))
 				await self.apiCall('POST', `/api/whiteboard/${encodeURIComponent(id)}/page/${n}`)
+			},
+		},
+		fb_login: {
+			name: 'Facebook: log in',
+			description:
+				"Apple TV: shows a code + QR on the TV for facebook.com/device (also in the $(livedeck:fb_code) variable). iPhone/iPad: opens Facebook's login page on the device.",
+			options: [{ type: 'checkbox', id: 'force', label: 'Even when signed in (switch account)', default: false }],
+			callback: async (a) => {
+				await self.apiCall('POST', '/api/facebook/login', a.options.force ? { force: true } : undefined)
+			},
+		},
+		fb_login_cancel: {
+			name: 'Facebook: cancel the login code',
+			options: [],
+			callback: async () => {
+				await self.apiCall('POST', '/api/facebook/login/cancel')
+			},
+		},
+		fb_target: {
+			name: 'Facebook: where to go live',
+			description: 'me = your timeline, or a Page id / a unique part of the Page name (see GET /api/facebook/targets).',
+			options: [{ type: 'textinput', id: 'target', label: 'Timeline (me) or Page', default: 'me', useVariables: true }],
+			callback: async (a) => {
+				const t = String(a.options.target ?? '').trim()
+				const body = t === '' || t === 'me' || /^\d+$/.test(t) ? { id: t || 'me' } : { name: t }
+				await self.apiCall('POST', '/api/facebook/target', body)
+			},
+		},
+		fb_privacy: {
+			name: 'Facebook: who can see it (timeline)',
+			options: [
+				{
+					type: 'dropdown',
+					id: 'value',
+					label: 'Audience',
+					choices: [
+						{ id: 'public', label: 'Public' },
+						{ id: 'friends', label: 'Friends' },
+						{ id: 'only_me', label: 'Only me' },
+					],
+					default: 'friends',
+				},
+			],
+			callback: async (a) => {
+				await self.apiCall('POST', '/api/facebook/privacy', { value: a.options.value })
+			},
+		},
+		fb_details: {
+			name: 'Facebook: title and description',
+			options: [
+				{ type: 'textinput', id: 'title', label: 'Title', default: '', useVariables: true },
+				{ type: 'textinput', id: 'description', label: 'Description', default: '', useVariables: true },
+			],
+			callback: async (a) => {
+				await self.apiCall('POST', '/api/facebook/details', {
+					title: String(a.options.title ?? ''),
+					description: String(a.options.description ?? ''),
+				})
+			},
+		},
+		fb_signout: {
+			name: 'Facebook: sign out',
+			description: 'Refused while Facebook is on air.',
+			options: [],
+			callback: async () => {
+				await self.apiCall('POST', '/api/facebook/signout')
 			},
 		},
 		raw_command: {

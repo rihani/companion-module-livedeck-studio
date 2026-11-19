@@ -89,6 +89,32 @@ export interface CompactState {
 	fund?: FundState
 	fundSkins?: FundSkin[]
 	serverNow?: number
+	/** #205 one-tap Facebook (Apple TV device-code login; same object as GET /api/facebook). Android: not yet. */
+	facebook?: FacebookState
+}
+
+export interface FacebookState {
+	configured?: boolean
+	offered?: boolean
+	signedIn?: boolean
+	account?: string
+	login?: {
+		method?: string
+		state?: string
+		userCode?: string
+		url?: string
+		qrURL?: string
+		expiresIn?: number
+		error?: string
+	}
+	targets?: { id: string; name: string; page: boolean }[]
+	target?: { id: string; name: string; page: boolean }
+	privacy?: string
+	title?: string
+	description?: string
+	state?: string
+	status?: string
+	permalink?: string
 }
 
 /** GO LIVE state; a Studio that does not report it yet counts as live while any output runs. */
