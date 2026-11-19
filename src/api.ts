@@ -89,7 +89,7 @@ export interface CompactState {
 	fund?: FundState
 	fundSkins?: FundSkin[]
 	serverNow?: number
-	/** #205 one-tap Facebook (Apple TV device-code login; same object as GET /api/facebook). Android: not yet. */
+	/** #206 one-tap Facebook (Apple TV device-code login; same object as GET /api/facebook). Android: not yet. */
 	facebook?: FacebookState
 }
 
