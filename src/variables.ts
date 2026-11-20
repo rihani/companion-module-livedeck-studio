@@ -60,6 +60,8 @@ export type VariablesSchema = {
 	fb_code: string
 	fb_target: string
 	fb_privacy: string
+	fb_audience_applied: string
+	fb_audience_warning: string
 } & LayoutNameVars
 
 export function UpdateVariableDefinitions(self: LiveDeckInstance): void {
@@ -121,6 +123,8 @@ export function UpdateVariableDefinitions(self: LiveDeckInstance): void {
 		fb_code: { name: 'Facebook login: code to enter at facebook.com/device (Apple TV, while waiting)' },
 		fb_target: { name: 'Facebook: where it goes live (timeline or Page name)' },
 		fb_privacy: { name: 'Facebook: who can see a timeline live (public / friends / only_me)' },
+		fb_audience_applied: { name: 'Facebook: who Facebook says sees the current timeline live (empty = Facebook did not say)' },
+		fb_audience_warning: { name: 'Facebook: notice when Facebook narrowed the audience (empty = none)' },
 	})
 	for (let i = 1; i <= LAYOUT_SLOTS; i++) defs[`layout_${i}_name`] = { name: `Layout ${i} name` }
 	self.setVariableDefinitions(defs as never)
@@ -168,6 +172,8 @@ export function variableValues(s: CompactState): Partial<VariablesSchema> {
 		v.fb_code = fb.login?.state === 'waiting' ? (fb.login.userCode ?? '') : ''
 		v.fb_target = fb.target?.name ?? ''
 		v.fb_privacy = fb.privacy ?? ''
+		v.fb_audience_applied = fb.audienceApplied ?? ''
+		v.fb_audience_warning = fb.audienceWarning ?? ''
 	}
 	return v as Partial<VariablesSchema>
 }

@@ -110,6 +110,9 @@ export interface FacebookState {
 	targets?: { id: string; name: string; page: boolean }[]
 	target?: { id: string; name: string; page: boolean }
 	privacy?: string
+	/** #207 who Facebook says sees the current timeline live ("" = not said) + the notice when narrower ("" = none) */
+	audienceApplied?: string
+	audienceWarning?: string
 	title?: string
 	description?: string
 	state?: string
