@@ -51,6 +51,11 @@ export type ActionsSchema = {
 	fb_remember: { options: { mode: OnOff } }
 	schedule_cancel_today: { options: Record<string, never> }
 	schedule_enable: { options: { schedule: string; mode: OnOff } }
+	schedule_skip: { options: { schedule: string } }
+	show_load: { options: { show: string } }
+	golive_retry: { options: Record<string, never> }
+	crew_standby: { options: { person: string } }
+	guest_kick: { options: { guest: string } }
 	fund_add: { options: { amount: number; name: string } }
 	fund_remove: { options: { amount: number; name: string } }
 	fund_quick: { options: { preset: string } }
@@ -1200,6 +1205,51 @@ export function UpdateActions(self: LiveDeckInstance): void {
 				await self.apiCall('POST', `/api/schedules/${encodeURIComponent(s.id)}/enable`, { on: on ? 1 : 0 })
 			},
 		},
+		schedule_skip: {
+			name: 'Schedule: skip the next run',
+			description: 'The schedule by its name (or id). Skips only its next run.',
+			options: [{ type: 'textinput', id: 'schedule', label: 'Schedule name or id', default: '', useVariables: true }],
+			callback: async (a) => {
+				const s = await findNamed(self, '/api/schedules', 'schedules', String(a.options.schedule ?? ''))
+				if (s) await self.apiCall('POST', `/api/schedules/${encodeURIComponent(s.id)}/skip`)
+			},
+		},
+		show_load: {
+			name: 'Show: load a saved show',
+			description:
+				'Loads the show by its name (or id). Replaces the current layouts and sources; the Studio refuses while anything is on air.',
+			options: [{ type: 'textinput', id: 'show', label: 'Show name or id', default: '', useVariables: true }],
+			callback: async (a) => {
+				const s = await findNamed(self, '/api/shows', 'shows', String(a.options.show ?? ''))
+				if (s) await self.apiCall('POST', `/api/shows/${encodeURIComponent(s.id)}/load`)
+			},
+		},
+		golive_retry: {
+			name: 'GO LIVE: retry failed outputs',
+			description: 'Retries every output that failed to go live.',
+			options: [],
+			callback: async () => {
+				await self.apiCall('POST', '/api/golive/retry')
+			},
+		},
+		crew_standby: {
+			name: 'Crew: stand by (30 s countdown)',
+			description: 'Tells one crew member (satellite or guest, by name or id) they are next.',
+			options: [{ type: 'textinput', id: 'person', label: 'Name or id', default: '', useVariables: true }],
+			callback: async (a) => {
+				const c = await findNamed(self, '/api/crew', 'crew', String(a.options.person ?? ''))
+				if (c) await self.apiCall('POST', `/api/crew/standby/${encodeURIComponent(c.id)}`)
+			},
+		},
+		guest_kick: {
+			name: 'Guests: remove a guest',
+			description: 'Removes a connected guest (by name or id) from the show now.',
+			options: [{ type: 'textinput', id: 'guest', label: 'Guest name or id', default: '', useVariables: true }],
+			callback: async (a) => {
+				const g = await findNamed(self, '/api/guests', 'guests', String(a.options.guest ?? ''))
+				if (g) await self.apiCall('POST', `/api/guests/${encodeURIComponent(g.id)}/kick`)
+			},
+		},
 		raw_command: {
 			name: 'Raw command (advanced)',
 			description: 'Any command from the Studio\'s /api docs page, as JSON, e.g. {"action":"cue","id":"…"}',
@@ -1220,4 +1270,22 @@ export function UpdateActions(self: LiveDeckInstance): void {
 			},
 		},
 	})
+}
+
+/** Look an item up by id or (display) name in a list route; logs and returns undefined when not found. */
+async function findNamed(
+	self: { apiCall: (m: string, p: string, b?: unknown) => Promise<unknown>; log: (l: 'warn', m: string) => void },
+	route: string,
+	key: string,
+	wanted: string,
+): Promise<{ id: string } | undefined> {
+	const name = wanted.trim().toLowerCase()
+	if (!name) return undefined
+	const r = (await self.apiCall('GET', route)) as Record<string, unknown> | undefined
+	const list = (r?.[key] as { id: string; name?: string; displayName?: string }[] | undefined) ?? []
+	const hit =
+		list.find((x) => String(x.id).toLowerCase() === name) ??
+		list.find((x) => (x.displayName ?? x.name ?? '').toLowerCase() === name)
+	if (!hit) self.log('warn', `Nothing called "${wanted}" in ${route}`)
+	return hit
 }
