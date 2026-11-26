@@ -1,6 +1,6 @@
 # Getting LiveDeck into the Companion module store
 
-The module is ready for submission at **v0.2.0**. Everything below is the owner's to do, with your own Slack and GitHub logins. Nothing has been submitted, tagged or released yet.
+The module is ready for submission at **v0.4.0** (tagged and released on rihani/ only, 2026-11-27). Everything below is the owner’s to do, with your own Slack and GitHub logins. Not requested on Slack yet.
 
 ## How the store works (checked 2026-10-04)
 
@@ -66,11 +66,11 @@ git push   # to the bitfocus remote
 
 ### 3. Tag the release
 
-The tag must match `package.json` (`0.2.0`):
+The tag must match `package.json` (`0.4.0`):
 
 ```
-git tag v0.2.0
-git push bitfocus v0.2.0
+git tag v0.4.0
+git push bitfocus v0.4.0
 ```
 
 A GitHub Release is optional. The portal only needs the tag.
@@ -81,7 +81,7 @@ A GitHub Release is optional. The portal only needs the tag.
 
 | Field         | Value                                 |
 | ------------- | ------------------------------------- |
-| Git tag       | `v0.2.0`                              |
+| Git tag       | `v0.4.0`                              |
 | Is prerelease | unchecked (check it for a beta build) |
 
 Then press **Submit**. If the portal asks for module details, it takes them from the manifest. If any field has to be typed, use these:
