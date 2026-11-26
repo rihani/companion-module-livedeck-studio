@@ -48,6 +48,9 @@ export type ActionsSchema = {
 	fb_privacy: { options: { value: 'public' | 'friends' | 'only_me' } }
 	fb_details: { options: { title: string; description: string } }
 	fb_signout: { options: Record<string, never> }
+	fb_remember: { options: { mode: OnOff } }
+	schedule_cancel_today: { options: Record<string, never> }
+	schedule_enable: { options: { schedule: string; mode: OnOff } }
 	fund_add: { options: { amount: number; name: string } }
 	fund_remove: { options: { amount: number; name: string } }
 	fund_quick: { options: { preset: string } }
@@ -1151,6 +1154,50 @@ export function UpdateActions(self: LiveDeckInstance): void {
 			options: [],
 			callback: async () => {
 				await self.apiCall('POST', '/api/facebook/signout')
+			},
+		},
+		fb_remember: {
+			name: 'Facebook: go live without asking',
+			description:
+				'On = GO LIVE goes straight out to Facebook with the remembered target, audience and words (no "Go live on Facebook" sheet). Off = ask every time.',
+			options: [modeOpt],
+			callback: async (a) => {
+				const on = want(a.options.mode, self.state.facebook ? !(self.state.facebook.askFirst ?? true) : undefined)
+				await self.apiCall('POST', '/api/facebook/remember', { on })
+			},
+		},
+		schedule_cancel_today: {
+			name: "Schedule: cancel today's scheduled live",
+			description: 'Cancels the scheduled live that is counting down (this time only; the schedule stays on).',
+			options: [],
+			callback: async () => {
+				await self.apiCall('POST', '/api/schedules/cancel-today')
+			},
+		},
+		schedule_enable: {
+			name: 'Schedule: turn on/off',
+			description: 'The schedule by its name (or id, from GET /api/schedules).',
+			options: [
+				{ type: 'textinput', id: 'schedule', label: 'Schedule name or id', default: '', useVariables: true },
+				modeOpt,
+			],
+			callback: async (a) => {
+				const name = String(a.options.schedule ?? '')
+					.trim()
+					.toLowerCase()
+				if (!name) return
+				const r = (await self.apiCall('GET', '/api/schedules')) as
+					{ schedules?: { id: string; name?: string; displayName?: string; enabled?: boolean }[] } | undefined
+				const list = r?.schedules ?? []
+				const s =
+					list.find((x) => x.id.toLowerCase() === name) ??
+					list.find((x) => (x.displayName ?? x.name ?? '').toLowerCase() === name)
+				if (!s) {
+					self.log('warn', `No schedule called "${name}"`)
+					return
+				}
+				const on = want(a.options.mode, s.enabled)
+				await self.apiCall('POST', `/api/schedules/${encodeURIComponent(s.id)}/enable`, { on: on ? 1 : 0 })
 			},
 		},
 		raw_command: {

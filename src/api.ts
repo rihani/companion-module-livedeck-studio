@@ -93,6 +93,9 @@ export interface CompactState {
 	serverNow?: number
 	/** #206 one-tap Facebook (Apple TV device-code login; same object as GET /api/facebook). Android: not yet. */
 	facebook?: FacebookState
+	/** Schedules (iOS/Apple TV): the soonest enabled run (start/end = epoch seconds) and the countdown / today's live run. */
+	nextSchedule?: { id: string; name?: string; day?: string; start?: number; end?: number; phase?: string } | null
+	scheduleCountdown?: { id: string; name?: string; day?: string; secondsLeft?: number; running?: boolean } | null
 }
 
 export interface FacebookState {
@@ -120,6 +123,8 @@ export interface FacebookState {
 	state?: string
 	status?: string
 	permalink?: string
+	/** true = GO LIVE asks first (default); false = straight out with the remembered choices */
+	askFirst?: boolean
 }
 
 /** GO LIVE state; a Studio that does not report it yet counts as live while any output runs. */

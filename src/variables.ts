@@ -66,6 +66,10 @@ export type VariablesSchema = {
 	viewers_youtube: string
 	viewers_facebook: string
 	viewers_peak: string
+	next_schedule_name: string
+	next_schedule_time: string
+	schedule_countdown: string
+	fb_remember: string
 } & LayoutNameVars
 
 export function UpdateVariableDefinitions(self: LiveDeckInstance): void {
@@ -135,6 +139,12 @@ export function UpdateVariableDefinitions(self: LiveDeckInstance): void {
 		viewers_youtube: { name: 'Viewers: watching on YouTube (empty = unknown or hidden)' },
 		viewers_facebook: { name: 'Viewers: watching on Facebook (empty = unknown)' },
 		viewers_peak: { name: 'Viewers: peak total since the stream started (empty = unknown)' },
+		next_schedule_name: { name: 'Schedule: name of the next scheduled live (empty = none)' },
+		next_schedule_time: { name: 'Schedule: when the next scheduled live starts (e.g. Fri 13:00; empty = none)' },
+		schedule_countdown: {
+			name: 'Schedule: seconds until the scheduled live goes out (LIVE while it runs; empty = none)',
+		},
+		fb_remember: { name: 'Facebook: go live without asking (Yes/No)' },
 	})
 	for (let i = 1; i <= LAYOUT_SLOTS; i++) defs[`layout_${i}_name`] = { name: `Layout ${i} name` }
 	self.setVariableDefinitions(defs as never)
@@ -178,6 +188,15 @@ export function variableValues(s: CompactState): Partial<VariablesSchema> {
 	v.viewers_youtube = n(s.viewers?.youtube)
 	v.viewers_facebook = n(s.viewers?.facebook)
 	v.viewers_peak = n(s.viewers?.peak)
+	const ns = s.nextSchedule
+	v.next_schedule_name = ns?.name ?? ''
+	if (ns && typeof ns.start === 'number') {
+		const d = new Date(ns.start * 1000)
+		const day = d.toLocaleDateString('en-AU', { weekday: 'short' })
+		v.next_schedule_time = `${day} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+	} else v.next_schedule_time = ''
+	const cd = s.scheduleCountdown
+	v.schedule_countdown = cd ? (cd.running ? 'LIVE' : String(cd.secondsLeft ?? '')) : ''
 	const fb = s.facebook
 	if (fb) {
 		v.fb_state = fb.state ?? ''
@@ -190,6 +209,7 @@ export function variableValues(s: CompactState): Partial<VariablesSchema> {
 		v.fb_privacy = fb.privacy ?? ''
 		v.fb_audience_applied = fb.audienceApplied ?? ''
 		v.fb_audience_warning = fb.audienceWarning ?? ''
+		v.fb_remember = fb.askFirst === false ? 'Yes' : 'No'
 	}
 	return v as Partial<VariablesSchema>
 }
