@@ -1274,7 +1274,7 @@ export function UpdateActions(self: LiveDeckInstance): void {
 
 /** Look an item up by id or (display) name in a list route; logs and returns undefined when not found. */
 async function findNamed(
-	self: { apiCall: (m: string, p: string, b?: unknown) => Promise<unknown>; log: (l: 'warn', m: string) => void },
+	self: LiveDeckInstance,
 	route: string,
 	key: string,
 	wanted: string,
