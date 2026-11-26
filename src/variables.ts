@@ -62,6 +62,10 @@ export type VariablesSchema = {
 	fb_privacy: string
 	fb_audience_applied: string
 	fb_audience_warning: string
+	viewers_total: string
+	viewers_youtube: string
+	viewers_facebook: string
+	viewers_peak: string
 } & LayoutNameVars
 
 export function UpdateVariableDefinitions(self: LiveDeckInstance): void {
@@ -123,8 +127,14 @@ export function UpdateVariableDefinitions(self: LiveDeckInstance): void {
 		fb_code: { name: 'Facebook login: code to enter at facebook.com/device (Apple TV, while waiting)' },
 		fb_target: { name: 'Facebook: where it goes live (timeline or Page name)' },
 		fb_privacy: { name: 'Facebook: who can see a timeline live (public / friends / only_me)' },
-		fb_audience_applied: { name: 'Facebook: who Facebook says sees the current timeline live (empty = Facebook did not say)' },
+		fb_audience_applied: {
+			name: 'Facebook: who Facebook says sees the current timeline live (empty = Facebook did not say)',
+		},
 		fb_audience_warning: { name: 'Facebook: notice when Facebook narrowed the audience (empty = none)' },
+		viewers_total: { name: 'Viewers: watching now, YouTube + Facebook (empty = unknown; one-tap lives only)' },
+		viewers_youtube: { name: 'Viewers: watching on YouTube (empty = unknown or hidden)' },
+		viewers_facebook: { name: 'Viewers: watching on Facebook (empty = unknown)' },
+		viewers_peak: { name: 'Viewers: peak total since the stream started (empty = unknown)' },
 	})
 	for (let i = 1; i <= LAYOUT_SLOTS; i++) defs[`layout_${i}_name`] = { name: `Layout ${i} name` }
 	self.setVariableDefinitions(defs as never)
@@ -162,6 +172,12 @@ export function variableValues(s: CompactState): Partial<VariablesSchema> {
 	const fps = s.outputFps ?? s.stats?.outputFps
 	if (fps !== undefined && Number.isFinite(Number(fps))) v.output_fps = Math.round(Number(fps))
 	for (let i = 1; i <= LAYOUT_SLOTS; i++) v[`layout_${i}_name`] = s.layouts?.[i - 1]?.name ?? ''
+	// Viewer counts: a number, or '' when the Studio does not know (stream-key outputs, hidden count, not live).
+	const n = (x?: number | null) => (typeof x === 'number' && Number.isFinite(x) ? String(Math.round(x)) : '')
+	v.viewers_total = n(s.viewers?.total)
+	v.viewers_youtube = n(s.viewers?.youtube)
+	v.viewers_facebook = n(s.viewers?.facebook)
+	v.viewers_peak = n(s.viewers?.peak)
 	const fb = s.facebook
 	if (fb) {
 		v.fb_state = fb.state ?? ''

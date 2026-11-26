@@ -64,6 +64,8 @@ export interface CompactState {
 	/** Full state (/api/state): live performance numbers. */
 	stats?: { cpu?: number; outputFps?: number; fps?: number }
 	takeStyles?: { id: string; name: string }[]
+	/** Live viewer counts (one-tap YouTube / Facebook only); null = unknown or hidden, never a guessed 0. */
+	viewers?: { youtube?: number | null; facebook?: number | null; total?: number | null; peak?: number | null }
 	/** GO LIVE (iOS 2026-09-30+; Android adds it to the event stream later — see liveNow()). */
 	isLive?: boolean
 	liveSince?: string | number | null

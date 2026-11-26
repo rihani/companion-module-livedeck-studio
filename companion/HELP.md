@@ -60,6 +60,8 @@ Layout is on air · Layout is cued · Layout has a source that stopped sending �
 | `fund_raised`, `fund_target`, `fund_togo`            | Fundraiser amounts with the currency symbol (`$18,450.00`)                               |
 | `fund_pct`, `fund_donors`                            | Percent of the goal raised (rounded down), number of donors                              |
 | `fund_latest`, `fund_undo_label`                     | Latest donation (`Fatima A. $100.00`), what Undo would take back                         |
+| `viewers_total`, `viewers_peak`                      | People watching now (YouTube + Facebook) and the peak since the stream started           |
+| `viewers_youtube`, `viewers_facebook`                | Watching on each platform. Only for lives LiveDeck created (one-tap); blank = unknown    |
 | `layout_count`, `layout_1_name` … `layout_16_name`   | Number of layouts and each layout's name                                                 |
 
 ### Presets
